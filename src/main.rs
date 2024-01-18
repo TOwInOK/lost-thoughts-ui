@@ -1,6 +1,9 @@
+use std::io::ErrorKind;
+use serde::{Deserialize, Serialize};
 use iced::widget::{button, column, horizontal_space, row, text_input, vertical_space, Column};
 use iced::{executor, Application, Font, Length, Theme};
 use iced::{Command, Settings};
+use serde_json::json;
 
 fn main() -> iced::Result {
     LostThoughts::run(Settings {
@@ -18,14 +21,36 @@ struct LostThoughts {
     debbug: bool,
     search: String,
     title: String,
+    posts: Vec<Post>,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
 struct User {
     login: String,
     password: String,
     email: String,
+    #[serde(default = "default_role")]
+    role: Role,
 }
+
+#[derive(Clone, Serialize, Deserialize)]
+struct user_min {
+    login: String,
+    #[serde(default = "default_role")]
+    role: Role,
+}
+    
+fn default_role() -> Role {
+    Role::Default
+}
+
+#[derive(Serialize, Deserialize, Clone)]
+pub enum Role {
+    Admin,
+    Paid,
+    Default,
+}
+
 
 #[derive(Debug, Clone)]
 struct Post {}
@@ -69,12 +94,14 @@ impl Application for LostThoughts {
                     login: String::new(),
                     password: String::new(),
                     email: String::new(),
+                    role: Role::Default,
                 },
                 logged_in: false,
                 current_window: WindowState::Login,
                 debbug: true,
                 search: String::new(),
                 title: "Login".to_string(),
+                posts: vec![],
             },
             Command::none(),
         )
@@ -86,35 +113,30 @@ impl Application for LostThoughts {
 
     fn update(&mut self, message: Self::Message) -> iced::Command<Self::Message> {
         match message {
-            Message::SignIn => Command::none(),
-            Message::SignUp => Command::none(),
+            Message::SignIn => (),
+            Message::SignUp => (),
             Message::SwitchWindow(window, name_of_window) => {
                 self.current_window = window;
                 self.title = name_of_window;
-                Command::none()
             }
             Message::PasswordChange(password) => {
                 self.user.password = password;
-                Command::none()
             }
             Message::LoginChange(login) => {
                 self.user.login = login;
-                Command::none()
             }
             Message::EmailChange(email) => {
                 self.user.email = email;
-                Command::none()
             }
             Message::SearchChange(value, ) => {
                 self.search = value;
-                Command::none()
             }
             Message::PostAdd(_) => todo!(),
             Message::DebugSwitch(value) => {
                 self.debbug = value;
-                Command::none()
             }
         }
+        Command::none()
     }
 
     fn view(&self) -> iced::Element<'_, Self::Message, iced::Renderer<Self::Theme>> {
@@ -194,4 +216,9 @@ impl Application for LostThoughts {
     fn theme(&self) -> Self::Theme {
         Theme::Dark
     }
+}
+
+
+async fn log_in(user: User) -> Result<(), ErrorKind> {
+    todo!()
 }
