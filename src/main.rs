@@ -10,14 +10,17 @@ fn main() -> iced::Result {
     })
 }
 
+#[derive(Clone)]
 struct LostThoughts {
     user: User,
     current_window: WindowState,
     logged_in: bool,
     debbug: bool,
     search: String,
+    title: String,
 }
 
+#[derive(Clone)]
 struct User {
     login: String,
     password: String,
@@ -41,7 +44,7 @@ enum WindowState {
 enum Message {
     SignIn,
     SignUp,
-    SwitchWindow(WindowState),
+    SwitchWindow(WindowState, String),
     PasswordChange(String),
     LoginChange(String),
     EmailChange(String),
@@ -71,21 +74,23 @@ impl Application for LostThoughts {
                 current_window: WindowState::Login,
                 debbug: true,
                 search: String::new(),
+                title: "Login".to_string(),
             },
             Command::none(),
         )
     }
 
     fn title(&self) -> String {
-        "Lost Thoughts".into()
+        self.title.clone()
     }
 
     fn update(&mut self, message: Self::Message) -> iced::Command<Self::Message> {
         match message {
             Message::SignIn => Command::none(),
             Message::SignUp => Command::none(),
-            Message::SwitchWindow(window) => {
+            Message::SwitchWindow(window, name_of_window) => {
                 self.current_window = window;
+                self.title = name_of_window;
                 Command::none()
             }
             Message::PasswordChange(password) => {
@@ -100,7 +105,7 @@ impl Application for LostThoughts {
                 self.user.email = email;
                 Command::none()
             }
-            Message::SearchChange(value) => {
+            Message::SearchChange(value, ) => {
                 self.search = value;
                 Command::none()
             }
@@ -124,7 +129,7 @@ impl Application for LostThoughts {
                     horizontal_space(Length::Fill),
                     button("Submit").on_press(Message::SignIn),
                     button("Has no account?")
-                        .on_press(Message::SwitchWindow(WindowState::Register)),
+                        .on_press(Message::SwitchWindow(WindowState::Register, "Register".to_string())),
                     horizontal_space(Length::Fill),
                 ]
                 .spacing(10)
@@ -145,7 +150,7 @@ impl Application for LostThoughts {
                     horizontal_space(Length::Fill),
                     button("Submit").on_press(Message::SignUp),
                     button("Already have an account?")
-                        .on_press(Message::SwitchWindow(WindowState::Login)),
+                        .on_press(Message::SwitchWindow(WindowState::Login, "Login".to_string())),
                     horizontal_space(Length::Fill),
                 ]
                 .spacing(10)
@@ -162,12 +167,12 @@ impl Application for LostThoughts {
         let debbug_menu = if self.debbug {
             row![
                 horizontal_space(Length::Fill),
-                button("login").on_press(Message::SwitchWindow(WindowState::Login)),
-                button("register").on_press(Message::SwitchWindow(WindowState::Register)),
-                button("main").on_press(Message::SwitchWindow(WindowState::Main)),
-                button("account").on_press(Message::SwitchWindow(WindowState::Account)),
-                button("poster").on_press(Message::SwitchWindow(WindowState::Poster)),
-                button("search").on_press(Message::SwitchWindow(WindowState::Search)),
+                button("login").on_press(Message::SwitchWindow(WindowState::Login, "Login".to_string())),
+                button("register").on_press(Message::SwitchWindow(WindowState::Register, "Register".to_string())),
+                button("main").on_press(Message::SwitchWindow(WindowState::Main, "Main".to_string())),
+                button("account").on_press(Message::SwitchWindow(WindowState::Account, "Account".to_string())),
+                button("poster").on_press(Message::SwitchWindow(WindowState::Poster, "Poster".to_string())),
+                button("search").on_press(Message::SwitchWindow(WindowState::Search, "Search".to_string())),
                 horizontal_space(Length::Fill),
                 button("debbug off").on_press(Message::DebugSwitch(false)),
             ]
