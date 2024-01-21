@@ -77,7 +77,7 @@ enum WindowState {
     Register,
     AllPosts,
     Account,
-    Poster,
+    Poster(Post),
     Search,
 }
 
@@ -120,7 +120,29 @@ impl Application for LostThoughts {
                 debbug: false,
                 search: String::new(),
                 title: "Login".to_string(),
-                posts: vec![],
+                posts: vec![
+                    Post {
+                        title: "Title 1".to_string(),
+                        under_title: "Subtitle 1".to_string(),
+                        body: "Body of post 1".to_string(),
+                        tag: vec!["tag1-1".to_string(), "tag1-2".to_string()],
+                        comments: vec![Comments {}, Comments {}],
+                    },
+                    Post {
+                        title: "Title 1".to_string(),
+                        under_title: "Subtitle 1".to_string(),
+                        body: "Body of post 1".to_string(),
+                        tag: vec!["tag1-1".to_string(), "tag1-2".to_string()],
+                        comments: vec![Comments {}, Comments {}],
+                    },
+                    Post {
+                        title: "Title 1".to_string(),
+                        under_title: "Subtitle 1".to_string(),
+                        body: "Body of post 1".to_string(),
+                        tag: vec!["tag1-1".to_string(), "tag1-2".to_string()],
+                        comments: vec![Comments {}, Comments {}],
+                    },
+                ],
                 search_result: vec![]
             },
             Command::none(),
@@ -156,7 +178,7 @@ impl Application for LostThoughts {
                     self.title = "Account".to_owned();
                     Command::none()
                 }
-                WindowState::Poster => {
+                WindowState::Poster(ref post) => {
                     self.current_window = window;
                     self.title = "Poster".to_owned();
                     Command::none()
@@ -199,7 +221,6 @@ impl Application for LostThoughts {
                                     tag: vec!["tag2-1".to_string(), "tag2-2".to_string()],
                                     comments: vec![Comments {}],
                                 },
-                                // ... Add more mocked Post instances here ...
                                 Post {
                                     title: "Title 10".to_string(),
                                     under_title: "Subtitle 10".to_string(),
@@ -279,7 +300,15 @@ impl Application for LostThoughts {
             .spacing(20),
             WindowState::AllPosts => column![],
             WindowState::Account => column![],
-            WindowState::Poster => column![],
+            WindowState::Poster(ref post) => column![
+                text(&post.title),
+                text(&post.under_title),
+                row![
+                    scrollable(
+                        text(&post.tag()),
+                    ),
+                ]
+            ],
             WindowState::Search =>{
                 let search_element = column![
                     text("Monotiper").size(40),
@@ -301,7 +330,7 @@ impl Application for LostThoughts {
                     result_list = result_list.push( column![
                         button(
                             text(&post.title)
-                        ),
+                        ).on_press(Message::SwitchWindow(WindowState::Poster(post.clone()))),
                         text(&post.under_title),
                         text(&post.tag())
                     ]);
@@ -323,7 +352,7 @@ impl Application for LostThoughts {
                 button("register").on_press(Message::SwitchWindow(WindowState::Register)),
                 button("main").on_press(Message::SwitchWindow(WindowState::AllPosts)),
                 button("account").on_press(Message::SwitchWindow(WindowState::Account)),
-                button("poster").on_press(Message::SwitchWindow(WindowState::Poster)),
+                //button("poster").on_press(Message::SwitchWindow(WindowState::Poster)),
                 button("search").on_press(Message::SwitchWindow(WindowState::Search)),
                 horizontal_space(Length::Fill),
             ]
