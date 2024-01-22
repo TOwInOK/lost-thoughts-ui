@@ -1,7 +1,6 @@
 use iced::keyboard::{Modifiers, KeyCode};
-use iced::subscription::{events, events_with};
-use iced::widget::{button, column, horizontal_space, row, text, text_input, vertical_space, Column, scrollable};
-use iced::{executor, Application, Font, Length, Theme, Element, keyboard, Subscription, subscription, event, Event};
+use iced::widget::{button, column, horizontal_space, row, text, text_input, vertical_space, scrollable};
+use iced::{executor, Application, Font, Length, Theme,  keyboard, Subscription, subscription, Event};
 use iced::{Command, Settings};
 use reqwest::{Client, StatusCode};
 use serde::{Deserialize, Serialize};
@@ -178,7 +177,7 @@ impl Application for LostThoughts {
                     self.title = "Account".to_owned();
                     Command::none()
                 }
-                WindowState::Poster(ref post) => {
+                WindowState::Poster(ref _post) => {
                     self.current_window = window;
                     self.title = "Poster".to_owned();
                     Command::none()
@@ -230,6 +229,7 @@ impl Application for LostThoughts {
                                 },
                             ];
                 println!("try to find {}", text);
+                self.search_result.clear();
                 self.search_result.append(&mut mocked_posts);
                 Command::none()
             }
@@ -300,19 +300,30 @@ impl Application for LostThoughts {
             .spacing(20),
             WindowState::AllPosts => column![],
             WindowState::Account => column![],
-            WindowState::Poster(ref post) => column![
-                text(&post.title),
-                text(&post.under_title),
-                row![
-                    scrollable(
-                        text(&post.tag()),
-                    ),
-                ]
-            ],
+            WindowState::Poster(ref post) =>
+                column![
+                    row![
+                        row![
+                            button("back").on_press(Message::SwitchWindow(WindowState::Search))
+                        ],
+                        horizontal_space(Length::Fill),
+                        row![
+                            column![
+                                text(&post.title),
+                                text(&post.under_title),
+                                row![
+                                    scrollable(
+                                        text(&post.tag()),
+                                    ),
+                                ]
+                            ].align_items(iced::Alignment::Center).spacing(20),
+                        ],
+                        horizontal_space(Length::Fill),
+                    ],
+                ],
             WindowState::Search =>{
                 let search_element = column![
-                    text("Monotiper").size(40),
-                    horizontal_space(30),
+                    //Input field
                     row![
                         text_input("Find something?", &self.search)
                         .on_input(Message::SearchChange)
@@ -325,7 +336,9 @@ impl Application for LostThoughts {
                 .align_items(iced::Alignment::Center)
                 .padding(30);
                 
+                //create list of result from api
                 let mut result_list =  column![].spacing(20);
+                //parse it
                 for post in self.search_result.iter() {
                     result_list = result_list.push( column![
                         button(
@@ -335,6 +348,7 @@ impl Application for LostThoughts {
                         text(&post.tag())
                     ]);
                 }
+                //make it scroalbe
                 let scrollable_result_list = scrollable(
                     result_list
                 ).width(Length::Fill);
@@ -345,24 +359,28 @@ impl Application for LostThoughts {
             }
         };
 
+        let logo = column![
+                //Logo
+                text("Monotiper").size(40),
+        ].padding(30).align_items(iced::Alignment::Center);
+
         let debbug_menu = if self.debbug {
             row![
                 horizontal_space(Length::Fill),
-                button("login").on_press(Message::SwitchWindow(WindowState::Login)),
-                button("register").on_press(Message::SwitchWindow(WindowState::Register)),
-                button("main").on_press(Message::SwitchWindow(WindowState::AllPosts)),
-                button("account").on_press(Message::SwitchWindow(WindowState::Account)),
-                //button("poster").on_press(Message::SwitchWindow(WindowState::Poster)),
-                button("search").on_press(Message::SwitchWindow(WindowState::Search)),
+                button("Login").on_press(Message::SwitchWindow(WindowState::Login)),
+                button("Register").on_press(Message::SwitchWindow(WindowState::Register)),
+                button("AllPosts").on_press(Message::SwitchWindow(WindowState::AllPosts)),
+                button("Account").on_press(Message::SwitchWindow(WindowState::Account)),
+                button("Search").on_press(Message::SwitchWindow(WindowState::Search)),
                 horizontal_space(Length::Fill),
             ]
             .align_items(iced::Alignment::Center)
-            .spacing(10)
+            .spacing(20)
         } else {
             row![]
         };
 
-        column![debbug_menu, content, vertical_space(Length::Fill)]
+        column![debbug_menu,logo,content]
             .spacing(10)
             .padding(10)
             .align_items(iced::Alignment::Center)
