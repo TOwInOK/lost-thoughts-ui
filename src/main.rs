@@ -1,3 +1,5 @@
+use std::fmt;
+
 use api::comment::Comment;
 use api::post::Post;
 use api::role::Role;
@@ -43,6 +45,19 @@ enum WindowState {
     Search,
 }
 
+impl fmt::Display for WindowState {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match *self {
+            WindowState::Login => write!(f, "Login"),
+            WindowState::Register => write!(f, "Register"),
+            WindowState::AllPosts => write!(f, "AllPosts"),
+            WindowState::Account => write!(f, "Account"),
+            WindowState::Poster(_) => write!(f, "Poster"),
+            WindowState::Search => write!(f, "Search"),
+        }
+    }
+}
+
 #[derive(Debug, Clone)]
 enum Message {
     SignIn,
@@ -50,13 +65,17 @@ enum Message {
     SignUp,
     Registered(Result<StatusCode, String>),
     SwitchWindow(WindowState),
+    Change(Changers),
+    Find(String),
+    PostAdd(Vec<Post>),
+    DebugSwitch,
+}
+#[derive(Debug, Clone)]
+enum Changers {
     PasswordChange(String),
     LoginChange(String),
     EmailChange(String),
     SearchChange(String),
-    Find(String),
-    PostAdd(Vec<Post>),
-    DebugSwitch,
 }
 
 impl Application for LostThoughts {
@@ -108,52 +127,18 @@ impl Application for LostThoughts {
         match message {
             Message::SignIn => Command::perform(log_in(self.user.clone()), Message::Signed),
             Message::SignUp => Command::perform(log_in(self.user.clone()), Message::Signed),
-            Message::SwitchWindow(window) => match window {
-                WindowState::Login => {
-                    self.current_window = window;
-                    self.title = "Login".to_owned();
-                    Command::none()
-                }
-                WindowState::Register => {
-                    self.current_window = window;
-                    self.title = "Register".to_owned();
-                    Command::none()
-                }
-                WindowState::AllPosts => {
-                    self.current_window = window;
-                    self.title = "AllPosts".to_owned();
-                    Command::none()
-                }
-                WindowState::Account => {
-                    self.current_window = window;
-                    self.title = "Account".to_owned();
-                    Command::none()
-                }
-                WindowState::Poster(ref _post) => {
-                    self.current_window = window;
-                    self.title = "Poster".to_owned();
-                    Command::none()
-                }
-                WindowState::Search => {
-                    self.current_window = window;
-                    self.title = "Search".to_owned();
-                    Command::none()
-                }
-            },
-            Message::PasswordChange(value) => {
-                self.user.set_password(value);
+            Message::SwitchWindow(window) => {
+                self.title = format!("{}", &window);
+                self.current_window = window;
                 Command::none()
             }
-            Message::LoginChange(value) => {
-                self.user.set_login(value);
-                Command::none()
-            }
-            Message::EmailChange(value) => {
-                self.user.set_email(value);
-                Command::none()
-            }
-            Message::SearchChange(value) => {
-                self.search = value;
+            Message::Change(changer) => {
+                match changer {
+                    Changers::EmailChange(value) => self.user.set_email(value),
+                    Changers::LoginChange(value) => self.user.set_login(value),
+                    Changers::PasswordChange(value) => self.user.set_password(value),
+                    Changers::SearchChange(value) => self.search = value,
+                }
                 Command::none()
             }
             Message::Find(text) => {
@@ -190,10 +175,11 @@ impl Application for LostThoughts {
     fn view(&self) -> iced::Element<'_, Self::Message, iced::Renderer<Self::Theme>> {
         let content = match self.current_window {
             WindowState::Login => column![
-                text_input("Login", self.user.get_login()).on_input(Message::LoginChange),
+                text_input("Login", self.user.get_login())
+                    .on_input(|value| Message::Change(Changers::PasswordChange(value))),
                 text_input("Password", self.user.get_password())
                     .password()
-                    .on_input(Message::PasswordChange),
+                    .on_input(|value| Message::Change(Changers::PasswordChange(value))),
                 row![
                     horizontal_space(Length::Fill),
                     button("Submit").on_press(Message::SignIn),
@@ -207,12 +193,14 @@ impl Application for LostThoughts {
             .padding(30)
             .spacing(20),
             WindowState::Register => column![
-                text_input("Login", self.user.get_login()).on_input(Message::LoginChange),
+                text_input("Login", self.user.get_login())
+                    .on_input(|value| Message::Change(Changers::LoginChange(value))),
                 text_input("Password", self.user.get_password())
                     .password()
-                    .on_input(Message::PasswordChange),
+                    .on_input(|value| Message::Change(Changers::PasswordChange(value))),
                 text_input("Confirm Password", self.user.get_password()),
-                text_input("Email", self.user.get_email()).on_input(Message::EmailChange),
+                text_input("Email", self.user.get_email())
+                    .on_input(|value| Message::Change(Changers::EmailChange(value))),
                 row![
                     horizontal_space(Length::Fill),
                     button("Submit").on_press(Message::SignUp),
@@ -244,7 +232,7 @@ impl Application for LostThoughts {
                     //Input field
                     row![
                         text_input("Find something?", &self.search)
-                            .on_input(Message::SearchChange)
+                            .on_input(|value| Message::Change(Changers::SearchChange(value)))
                             .on_submit(Message::Find(self.search.clone())),
                         button("Find").on_press(Message::Find(self.search.clone())),
                     ]
