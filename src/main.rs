@@ -176,7 +176,7 @@ impl Application for LostThoughts {
         let content = match self.current_window {
             WindowState::Login => column![
                 text_input("Login", self.user.get_login())
-                    .on_input(|value| Message::Change(Changers::PasswordChange(value))),
+                    .on_input(|value| Message::Change(Changers::LoginChange(value))),
                 text_input("Password", self.user.get_password())
                     .password()
                     .on_input(|value| Message::Change(Changers::PasswordChange(value))),
