@@ -1,10 +1,17 @@
-use iced::keyboard::{Modifiers, KeyCode};
-use iced::widget::{button, column, horizontal_space, row, text, text_input, vertical_space, scrollable};
-use iced::{executor, Application, Font, Length, Theme,  keyboard, Subscription, subscription, Event};
+use api::comment::Comment;
+use api::post::Post;
+use api::role::Role;
+use api::user::User;
+use api::*;
+use iced::keyboard::{KeyCode, Modifiers};
+use iced::widget::{button, column, horizontal_space, row, scrollable, text, text_input};
+use iced::{
+    executor, keyboard, subscription, Application, Event, Font, Length, Subscription, Theme,
+};
 use iced::{Command, Settings};
-use reqwest::{Client, StatusCode};
-use serde::{Deserialize, Serialize};
-use serde_json::json;
+use reqwest::StatusCode;
+
+mod api;
 
 fn main() -> iced::Result {
     LostThoughts::run(Settings {
@@ -23,52 +30,8 @@ struct LostThoughts {
     search: String,
     title: String,
     posts: Vec<Post>,
-    search_result: Vec<Post>
+    search_result: Vec<Post>,
 }
-
-#[derive(Clone, Serialize, Deserialize, Debug)]
-struct User {
-    login: String,
-    password: String,
-    email: String,
-    #[serde(default = "default_role")]
-    role: Role,
-}
-
-#[derive(Clone, Serialize, Deserialize, Debug)]
-struct UserMin {
-    login: String,
-    #[serde(default = "default_role")]
-    role: Role,
-}
-
-fn default_role() -> Role {
-    Role::Default
-}
-
-#[derive(Serialize, Deserialize, Clone, Debug)]
-pub enum Role {
-    Admin,
-    Paid,
-    Default,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-struct Post {
-    title: String,
-    under_title: String,
-    body: String,
-    tag: Vec<String>,
-    comments: Vec<Comments>,
-}
-
-impl Post {
-    fn tag(&self) -> String {
-        self.tag.join(",")
-    }
-}
-#[derive(Debug, Clone, Serialize, Deserialize)]
-struct Comments {}
 
 #[derive(Debug, Clone)]
 enum WindowState {
@@ -108,41 +71,30 @@ impl Application for LostThoughts {
     fn new(_flags: Self::Flags) -> (Self, iced::Command<Self::Message>) {
         (
             Self {
-                user: User {
-                    login: String::new(),
-                    password: String::new(),
-                    email: String::new(),
-                    role: Role::Default,
-                },
+                user: User::new(
+                    String::new(),
+                    String::new(),
+                    String::new(),
+                    Some(Role::Default),
+                ),
                 logged_in: false,
                 current_window: WindowState::Login,
                 debbug: false,
                 search: String::new(),
                 title: "Login".to_string(),
-                posts: vec![
-                    Post {
-                        title: "Title 1".to_string(),
-                        under_title: "Subtitle 1".to_string(),
-                        body: "Body of post 1".to_string(),
-                        tag: vec!["tag1-1".to_string(), "tag1-2".to_string()],
-                        comments: vec![Comments {}, Comments {}],
-                    },
-                    Post {
-                        title: "Title 1".to_string(),
-                        under_title: "Subtitle 1".to_string(),
-                        body: "Body of post 1".to_string(),
-                        tag: vec!["tag1-1".to_string(), "tag1-2".to_string()],
-                        comments: vec![Comments {}, Comments {}],
-                    },
-                    Post {
-                        title: "Title 1".to_string(),
-                        under_title: "Subtitle 1".to_string(),
-                        body: "Body of post 1".to_string(),
-                        tag: vec!["tag1-1".to_string(), "tag1-2".to_string()],
-                        comments: vec![Comments {}, Comments {}],
-                    },
-                ],
-                search_result: vec![]
+                posts: vec![Post::new(
+                    "Title 1".to_string(),
+                    "Subtitle 1".to_string(),
+                    "Body of post 1".to_string(),
+                    vec!["tag1-1".to_string(), "tag1-2".to_string()],
+                    vec![Comment::new(
+                        "Author".to_string(),
+                        "id".to_string(),
+                        "reject id".to_string(),
+                        "Text of shit comment".to_string(),
+                    )],
+                )],
+                search_result: vec![],
             },
             Command::none(),
         )
@@ -188,16 +140,16 @@ impl Application for LostThoughts {
                     Command::none()
                 }
             },
-            Message::PasswordChange(password) => {
-                self.user.password = password;
+            Message::PasswordChange(value) => {
+                self.user.set_password(value);
                 Command::none()
             }
-            Message::LoginChange(login) => {
-                self.user.login = login;
+            Message::LoginChange(value) => {
+                self.user.set_login(value);
                 Command::none()
             }
-            Message::EmailChange(email) => {
-                self.user.email = email;
+            Message::EmailChange(value) => {
+                self.user.set_email(value);
                 Command::none()
             }
             Message::SearchChange(value) => {
@@ -205,32 +157,7 @@ impl Application for LostThoughts {
                 Command::none()
             }
             Message::Find(text) => {
-                let mut mocked_posts = vec![
-                                Post {
-                                    title: "Title 1".to_string(),
-                                    under_title: "Subtitle 1".to_string(),
-                                    body: "Body of post 1".to_string(),
-                                    tag: vec!["tag1-1".to_string(), "tag1-2".to_string()],
-                                    comments: vec![Comments {}, Comments {}],
-                                },
-                                Post {
-                                    title: "Title 2".to_string(),
-                                    under_title: "Subtitle 2".to_string(),
-                                    body: "Body of post 2".to_string(),
-                                    tag: vec!["tag2-1".to_string(), "tag2-2".to_string()],
-                                    comments: vec![Comments {}],
-                                },
-                                Post {
-                                    title: "Title 10".to_string(),
-                                    under_title: "Subtitle 10".to_string(),
-                                    body: "Body of post 10".to_string(),
-                                    tag: vec!["tag10-1".to_string(), "tag10-2".to_string()],
-                                    comments: vec![Comments {}, Comments {}, Comments {}],
-                                },
-                            ];
                 println!("try to find {}", text);
-                self.search_result.clear();
-                self.search_result.append(&mut mocked_posts);
                 Command::none()
             }
             Message::PostAdd(_) => todo!(),
@@ -263,8 +190,8 @@ impl Application for LostThoughts {
     fn view(&self) -> iced::Element<'_, Self::Message, iced::Renderer<Self::Theme>> {
         let content = match self.current_window {
             WindowState::Login => column![
-                text_input("Login", &self.user.login).on_input(Message::LoginChange),
-                text_input("Password", &self.user.password)
+                text_input("Login", self.user.get_login()).on_input(Message::LoginChange),
+                text_input("Password", self.user.get_password())
                     .password()
                     .on_input(Message::PasswordChange),
                 row![
@@ -280,12 +207,12 @@ impl Application for LostThoughts {
             .padding(30)
             .spacing(20),
             WindowState::Register => column![
-                text_input("Login", &self.user.login).on_input(Message::LoginChange),
-                text_input("Password", &self.user.password)
+                text_input("Login", self.user.get_login()).on_input(Message::LoginChange),
+                text_input("Password", self.user.get_password())
                     .password()
                     .on_input(Message::PasswordChange),
-                text_input("Confirm Password", &self.user.password),
-                text_input("Email", &self.user.email).on_input(Message::EmailChange),
+                text_input("Confirm Password", self.user.get_password()),
+                text_input("Email", self.user.get_email()).on_input(Message::EmailChange),
                 row![
                     horizontal_space(Length::Fill),
                     button("Submit").on_press(Message::SignUp),
@@ -300,69 +227,57 @@ impl Application for LostThoughts {
             .spacing(20),
             WindowState::AllPosts => column![],
             WindowState::Account => column![],
-            WindowState::Poster(ref post) =>
-                column![
-                    row![
-                        row![
-                            button("back").on_press(Message::SwitchWindow(WindowState::Search))
-                        ],
-                        horizontal_space(Length::Fill),
-                        row![
-                            column![
-                                text(&post.title),
-                                text(&post.under_title),
-                                row![
-                                    scrollable(
-                                        text(&post.tag()),
-                                    ),
-                                ]
-                            ].align_items(iced::Alignment::Center).spacing(20),
-                        ],
-                        horizontal_space(Length::Fill),
-                    ],
-                ],
-            WindowState::Search =>{
+            WindowState::Poster(ref post) => column![row![
+                row![button("back").on_press(Message::SwitchWindow(WindowState::Search))],
+                horizontal_space(Length::Fill),
+                row![column![
+                    text(post.get_title()),
+                    text(post.get_under_title()),
+                    row![scrollable(text(&post.tag()),),]
+                ]
+                .align_items(iced::Alignment::Center)
+                .spacing(20),],
+                horizontal_space(Length::Fill),
+            ],],
+            WindowState::Search => {
                 let search_element = column![
                     //Input field
                     row![
                         text_input("Find something?", &self.search)
-                        .on_input(Message::SearchChange)
-                        .on_submit(Message::Find(self.search.clone())),
+                            .on_input(Message::SearchChange)
+                            .on_submit(Message::Find(self.search.clone())),
                         button("Find").on_press(Message::Find(self.search.clone())),
-                    ].spacing(10).align_items(iced::Alignment::Center)
-    
+                    ]
+                    .spacing(10)
+                    .align_items(iced::Alignment::Center)
                 ]
                 .spacing(20)
                 .align_items(iced::Alignment::Center)
                 .padding(30);
-                
+
                 //create list of result from api
-                let mut result_list =  column![].spacing(20);
+                let mut result_list = column![].spacing(20);
                 //parse it
                 for post in self.search_result.iter() {
-                    result_list = result_list.push( column![
-                        button(
-                            text(&post.title)
-                        ).on_press(Message::SwitchWindow(WindowState::Poster(post.clone()))),
-                        text(&post.under_title),
+                    result_list = result_list.push(column![
+                        button(text(post.get_title()))
+                            .on_press(Message::SwitchWindow(WindowState::Poster(post.clone()))),
+                        text(post.get_under_title()),
                         text(&post.tag())
                     ]);
                 }
                 //make it scroalbe
-                let scrollable_result_list = scrollable(
-                    result_list
-                ).width(Length::Fill);
-                column![
-                    search_element,
-                    scrollable_result_list
-                ].spacing(30)
+                let scrollable_result_list = scrollable(result_list).width(Length::Fill);
+                column![search_element, scrollable_result_list].spacing(30)
             }
         };
 
         let logo = column![
-                //Logo
-                text("Monotiper").size(40),
-        ].padding(30).align_items(iced::Alignment::Center);
+            //Logo
+            text("Monotiper").size(40),
+        ]
+        .padding(30)
+        .align_items(iced::Alignment::Center);
 
         let debbug_menu = if self.debbug {
             row![
@@ -380,7 +295,7 @@ impl Application for LostThoughts {
             row![]
         };
 
-        column![debbug_menu,logo,content]
+        column![debbug_menu, logo, content]
             .spacing(10)
             .padding(10)
             .align_items(iced::Alignment::Center)
@@ -391,139 +306,15 @@ impl Application for LostThoughts {
     }
 
     fn subscription(&self) -> Subscription<Message> {
-        subscription::events_with(|event, _status| {
-            match event {
-                Event::Keyboard(keyboard::Event::KeyPressed { key_code, modifiers }) if modifiers.control() => {
-                    match (key_code, modifiers) {
-                        (KeyCode::D, Modifiers::CTRL) => Some(Message::DebugSwitch),
-                        _ => None,
-                    }
-                }
+        subscription::events_with(|event, _status| match event {
+            Event::Keyboard(keyboard::Event::KeyPressed {
+                key_code,
+                modifiers,
+            }) if modifiers.control() => match (key_code, modifiers) {
+                (KeyCode::D, Modifiers::CTRL) => Some(Message::DebugSwitch),
                 _ => None,
-            }
+            },
+            _ => None,
         })
     }
-}
-async fn log_in(user: User) -> Result<StatusCode, String> {
-    tokio::runtime::Builder::new_multi_thread()
-        .enable_all()
-        .build()
-        .unwrap()
-        .block_on(async {
-            let client = Client::new();
-            client
-                .get(format!(
-                    "https://api.lost-umbrella.com/user/{}/settings",
-                    &user.login
-                ))
-                .json(&json!({
-                    "name": &user.login,
-                    "password": &user.password,
-                }))
-                .send()
-                .await
-                .map(|e| {
-                    println!("{:#?}", &e);
-                    e.status()
-                })
-                .map_err(|e| e.to_string())
-        })
-}
-
-async fn sign_up(user: User) -> Result<StatusCode, String> {
-    tokio::runtime::Builder::new_multi_thread()
-        .enable_all()
-        .build()
-        .unwrap()
-        .block_on(async {
-            let client = Client::new();
-            client
-                .post(format!("https://api.lost-umbrella.com/user/create"))
-                .json(&json!({
-                    "name": &user.login,
-                    "password": &user.password,
-                    "email": &user.email
-                }))
-                .send()
-                .await
-                .map(|e| {
-                    println!("{:#?}", &e);
-                    e.status()
-                })
-                .map_err(|e| e.to_string())
-        })
-}
-
-async fn get_all_posts() -> Result<Vec<Post>, String> {
-    tokio::runtime::Builder::new_multi_thread()
-        .enable_all()
-        .build()
-        .unwrap()
-        .block_on(async {
-            let mut posts = Vec::<Post>::new();
-            let client = Client::new();
-            let response = client
-                .get(format!("https://api.lost-umbrella.com/posts/page/all"))
-                .send()
-                .await
-                .map_err(|e| e.to_string())?;
-            let results = response
-                .json::<Vec<Post>>()
-                .await
-                .map_err(|e| e.to_string())?;
-            for result in results {
-                posts.push(result);
-            }
-            Ok(posts)
-        })
-}
-
-async fn get_page(page: u32) -> Result<Vec<Post>, String> {
-    tokio::runtime::Builder::new_multi_thread()
-        .enable_all()
-        .build()
-        .unwrap()
-        .block_on(async {
-            let mut posts = Vec::<Post>::new();
-            let client = Client::new();
-            let response = client
-                .get(format!("https://api.lost-umbrella.com/posts/page/{}", page))
-                .send()
-                .await
-                .map_err(|e| e.to_string())?;
-            let results = response
-                .json::<Vec<Post>>()
-                .await
-                .map_err(|e| e.to_string())?;
-            for result in results {
-                posts.push(result);
-            }
-            Ok(posts)
-        })
-}
-
-async fn search(user: User) -> Result<StatusCode, String> {
-    tokio::runtime::Builder::new_multi_thread()
-        .enable_all()
-        .build()
-        .unwrap()
-        .block_on(async {
-            let client = Client::new();
-            client
-                .get(format!(
-                    "https://api.lost-umbrella.com/user/{}/settings",
-                    &user.login
-                ))
-                .json(&json!({
-                    "name": &user.login,
-                    "password": &user.password,
-                }))
-                .send()
-                .await
-                .map(|e| {
-                    println!("{:#?}", &e);
-                    e.status()
-                })
-                .map_err(|e| e.to_string())
-        })
 }
