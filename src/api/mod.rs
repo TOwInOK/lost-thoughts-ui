@@ -8,7 +8,7 @@ use reqwest::{Client, StatusCode};
 use serde_json::json;
 use user::*;
 
-pub async fn log_in(ref user: User) -> Result<StatusCode, String> {
+pub async fn log_in(user: User) -> Result<StatusCode, String> {
     let client = Client::new();
     client
         .get(format!(
@@ -28,10 +28,10 @@ pub async fn log_in(ref user: User) -> Result<StatusCode, String> {
         .map_err(|e| e.to_string())
 }
 
-pub async fn sign_up(ref user: User) -> Result<StatusCode, String> {
+pub async fn sign_up(user: &User) -> Result<StatusCode, String> {
     let client = Client::new();
     client
-        .post(format!("https://api.lost-umbrella.com/user/create"))
+        .post("https://api.lost-umbrella.com/user/create".to_string())
         .json(&json!({
             "name": user.get_login(),
             "password": user.get_password(),
