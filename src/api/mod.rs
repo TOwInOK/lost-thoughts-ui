@@ -52,7 +52,7 @@ pub async fn get_all_posts() -> Result<Option<Vec<Post>>, IOErrors> {
     println!("Start medot GetAllPosts");
     let client = Client::new();
     let response: reqwest::Response = client
-        .get(format!("https://api.lost-umbrella.com/post/page/all"))
+        .get("https://api.lost-umbrella.com/post/page/all")
         .send()
         .await
         .map_err(|e| IOErrors::PostAdd(e.to_string()))?;

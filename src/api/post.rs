@@ -26,6 +26,7 @@ pub struct Post {
     pub tags: Vec<String>,
     pub comments: Vec<Comment>,
 }
+#[allow(clippy::too_many_arguments)]
 impl Post {
     pub fn new(
         id: String,

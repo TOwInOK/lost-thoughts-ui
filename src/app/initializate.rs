@@ -92,7 +92,7 @@ impl Application for LostThoughts {
                 WindowState::AllPosts => {
                     self.title = format!("{}", &window);
                     self.current_window = window;
-                    Command::perform(get_all_posts(), |x| Message::PostAdd(x))
+                    Command::perform(get_all_posts(), Message::PostAdd)
                 }
                 _ => {
                     self.title = format!("{}", &window);
@@ -256,8 +256,11 @@ impl Application for LostThoughts {
             WindowState::Account => {
                 let bool = true;
                 column![
+                    //Role text
                     text(format!("Role: {}", self.user.get_role())),
+                    //Account name
                     text(format!("Account name: {}", self.user.get_role())),
+                    //Password rows
                     if !bool {
                         column![row![
                             text_input("SomeShit", self.user.get_password()).password(),
@@ -276,14 +279,16 @@ impl Application for LostThoughts {
                             ]
                             .padding(20)
                         ]
-                    }
+                    },
+                    //post list
+                    column![//some parsed list]
+                    ]
                 ]
                 .spacing(18)
                 .padding(30)
                 .align_items(iced::Alignment::Center)
+                //End Account Sigment
             }
-            //End Account Sigment
-
             //Start Poster Sigment
             WindowState::Poster(ref post) => column![row![
                 row![button("back").on_press(Message::SwitchWindow(WindowState::Search))],

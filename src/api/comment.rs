@@ -38,8 +38,8 @@ impl Comment {
         &self.id
     }
     pub fn get_reject(&self) -> Option<&str> {
-        match &self.reject {
-            Some(ref value) => Some(value),
+        match &self.reject.as_ref() {
+            Some(value) => Some(value),
             None => None,
         }
     }
