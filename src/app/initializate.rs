@@ -254,24 +254,33 @@ impl Application for LostThoughts {
 
             //Start Account Sigment
             WindowState::Account => {
-                let bool = false;
+                let bool = true;
                 column![
-                    text(self.user.get_role()),
-                    text(self.user.get_login()),
+                    text(format!("Role: {}", self.user.get_role())),
+                    text(format!("Account name: {}", self.user.get_role())),
                     if !bool {
-                        row![
-                            text_input("{}", self.user.get_password()).password(),
+                        column![row![
+                            text_input("SomeShit", self.user.get_password()).password(),
                             button("Change?")
-                        ]
+                        ]]
                     } else {
-                        row![
+                        column![
                             //при сравнении нужно сравнить с `self.user.password`
-                            text_input("{}", &self.password),
-                            text_input("{}", &self.password_repit),
-                            button("Change?")
+                            text_input("You stell remember me :)!?", &self.password),
+                            text_input("Write your pASSword again...", &self.password_repit),
+                            //
+                            row![
+                                button("Cancel"),
+                                horizontal_space(Length::Fill),
+                                button("Push")
+                            ]
+                            .padding(20)
                         ]
                     }
                 ]
+                .spacing(18)
+                .padding(30)
+                .align_items(iced::Alignment::Center)
             }
             //End Account Sigment
 
