@@ -70,6 +70,8 @@ impl Application for LostThoughts {
                 title: "Login".to_string(),
                 posts: vec![],
                 search_result: vec![],
+                password: String::new(),
+                password_repit: String::new(),
             },
             Command::none(),
         )
@@ -77,8 +79,15 @@ impl Application for LostThoughts {
 
     fn update(&mut self, message: Self::Message) -> iced::Command<Self::Message> {
         match message {
+            //Sign In
             Message::SignIn => Command::perform(log_in(self.user.clone()), Message::Signed),
+            //Sign In
+
+            //SignUp
             Message::SignUp => Command::perform(log_in(self.user.clone()), Message::Registered),
+            //SignUp
+
+            //SwitchWindow
             Message::SwitchWindow(window) => match window {
                 WindowState::AllPosts => {
                     self.title = format!("{}", &window);
@@ -91,6 +100,9 @@ impl Application for LostThoughts {
                     Command::none()
                 }
             },
+            //SwitchWindow
+
+            //Change - Thing that change on input
             Message::Change(changer) => {
                 match changer {
                     Changers::EmailChange(value) => self.user.set_email(value),
@@ -100,10 +112,16 @@ impl Application for LostThoughts {
                 }
                 Command::none()
             }
+            //Change
+
+            //Find
             Message::Find(text) => {
                 println!("try to find {}", &text);
                 Command::perform(search(text, 0), Message::PostAdd)
             }
+            //Find
+
+            //PostAdd
             Message::PostAdd(posters) => {
                 println!("Start post add");
                 self.posts.clear();
@@ -124,7 +142,9 @@ impl Application for LostThoughts {
                     }
                 }
             }
+            //PostAdd
 
+            //Signed
             Message::Signed(result) => match result {
                 Ok(e) => match e {
                     StatusCode::OK => {
@@ -134,6 +154,9 @@ impl Application for LostThoughts {
                 },
                 Err(_) => Command::none(),
             },
+            //Signed
+
+            //Registered
             Message::Registered(result) => match result {
                 Ok(e) => match e {
                     StatusCode::OK => {
@@ -143,6 +166,9 @@ impl Application for LostThoughts {
                 },
                 Err(_) => Command::none(),
             },
+            //Registered
+
+            //Switcher
             Message::Switcher(e) => match e {
                 messages::Switch::DebugPanelSwitch => {
                     println!("debbug is {}", self.debbug);
@@ -152,16 +178,16 @@ impl Application for LostThoughts {
                 messages::Switch::ChangePasswordSwtich => todo!(),
                 messages::Switch::ChangeEmailSwitch => todo!(),
             },
+            //Switcher
         }
     }
 
     fn view(&self) -> iced::Element<'_, Self::Message, iced::Renderer<Self::Theme>> {
-        //create list of result from api
-        let mut result_list = column![].spacing(20).padding(30);
-        //parse it
+        //Start Scrollable Poster List Sigment
+        let mut result_list = column![].spacing(20).padding(30); // List
         for post in self.posts.iter() {
+            //Parsing
             result_list = {
-                println!("{:#?}", &post);
                 result_list.push(column![
                     button(text(post.get_label()))
                         .on_press(Message::SwitchWindow(WindowState::Poster(post.clone()))),
@@ -170,9 +196,13 @@ impl Application for LostThoughts {
                 ])
             };
         }
-        //make it scroalbe
+        //Make it scrollable
         let scrollable_result_list = scrollable(result_list).width(Length::Fill);
+        //End Scrollable Poster List Sigment
+
+        //Start Content Sigment
         let content = match self.current_window {
+            //Login Sigment
             WindowState::Login => column![
                 input_field!("Login", self.user.get_login(), Changers::LoginChange),
                 secure_input_field!(
@@ -192,6 +222,9 @@ impl Application for LostThoughts {
             ]
             .padding(30)
             .spacing(20),
+            //End Login Sigment
+
+            //Start Register Sigment
             WindowState::Register => column![
                 input_field!("Login", self.user.get_login(), Changers::LoginChange),
                 secure_input_field!(
@@ -213,17 +246,36 @@ impl Application for LostThoughts {
             ]
             .padding(30)
             .spacing(20),
+            //End Register Sigment
+
+            //Start AllPost Sigment
             WindowState::AllPosts => column![scrollable_result_list].spacing(30).padding(30),
+            //End AllPost Sigment
+
+            //Start Account Sigment
             WindowState::Account => {
+                let bool = false;
                 column![
                     text(self.user.get_role()),
                     text(self.user.get_login()),
-                    row![
-                        text_input("{}", self.user.get_password()).password(),
-                        button("Change?")
-                    ]
+                    if !bool {
+                        row![
+                            text_input("{}", self.user.get_password()).password(),
+                            button("Change?")
+                        ]
+                    } else {
+                        row![
+                            //при сравнении нужно сравнить с `self.user.password`
+                            text_input("{}", &self.password),
+                            text_input("{}", &self.password_repit),
+                            button("Change?")
+                        ]
+                    }
                 ]
             }
+            //End Account Sigment
+
+            //Start Poster Sigment
             WindowState::Poster(ref post) => column![row![
                 row![button("back").on_press(Message::SwitchWindow(WindowState::Search))],
                 horizontal_space(Length::Fill),
@@ -236,6 +288,9 @@ impl Application for LostThoughts {
                 .spacing(20),],
                 horizontal_space(Length::Fill),
             ],],
+            //End Poster Sigment
+
+            //Start Search Sigment
             WindowState::Search => {
                 let search_element = column![
                     //Input field
@@ -251,16 +306,20 @@ impl Application for LostThoughts {
                 .align_items(iced::Alignment::Center)
                 .padding(30);
                 column![search_element, scrollable_result_list].spacing(30)
-            }
+            } //End Search Sigment
         };
+        //End Content Sigment
 
+        //Start Logo
         let logo = column![
             //Logo
             text("Monotiper").size(40),
         ]
         .padding(30)
         .align_items(iced::Alignment::Center);
+        //End Logo
 
+        //Start DebbugMenu
         let debbug_menu = if self.debbug {
             row![
                 horizontal_space(Length::Fill),
@@ -276,7 +335,9 @@ impl Application for LostThoughts {
         } else {
             row![]
         };
+        //End DebbugMenu
 
+        //Output
         column![debbug_menu, logo, content]
             .spacing(10)
             .padding(10)
