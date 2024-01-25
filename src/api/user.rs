@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use super::role::{default_role, Role};
 use serde::{Deserialize, Serialize};
 #[derive(Clone, Serialize, Deserialize, Debug)]
@@ -49,5 +51,15 @@ impl User {
 
     pub fn set_role(&mut self, value: Role) {
         self.role = value;
+    }
+}
+
+impl Display for Role {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Role::Admin => write!(f, "Admin"),
+            Role::Paid => write!(f, "Paid"),
+            Role::Default => write!(f, "Default"),
+        }
     }
 }

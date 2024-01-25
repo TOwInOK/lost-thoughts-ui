@@ -1,9 +1,7 @@
-use self::comment::Comment;
-use self::post::Post;
 use self::role::Role;
 use self::user::User;
 
-use super::messages::{Changers, Message, WindowState};
+use super::messages::{self, Changers, Message, WindowState};
 use super::model::LostThoughts;
 use crate::api::*;
 use iced::keyboard::{KeyCode, Modifiers};
@@ -33,6 +31,28 @@ impl Application for LostThoughts {
     type Theme = Theme;
 
     type Flags = ();
+    fn theme(&self) -> Self::Theme {
+        Theme::Dark
+    }
+
+    fn subscription(&self) -> Subscription<Message> {
+        subscription::events_with(|event, _status| match event {
+            Event::Keyboard(keyboard::Event::KeyPressed {
+                key_code,
+                modifiers,
+            }) if modifiers.control() => match (key_code, modifiers) {
+                (KeyCode::D, Modifiers::CTRL) => {
+                    Some(Message::Switcher(messages::Switch::DebugPanelSwitch))
+                }
+                _ => None,
+            },
+            _ => None,
+        })
+    }
+
+    fn title(&self) -> String {
+        self.title.clone()
+    }
 
     fn new(_flags: Self::Flags) -> (Self, iced::Command<Self::Message>) {
         (
@@ -48,37 +68,29 @@ impl Application for LostThoughts {
                 debbug: false,
                 search: String::new(),
                 title: "Login".to_string(),
-                posts: vec![Post::new(
-                    "Title 1".to_string(),
-                    "Subtitle 1".to_string(),
-                    "Body of post 1".to_string(),
-                    vec!["tag1-1".to_string(), "tag1-2".to_string()],
-                    vec![Comment::new(
-                        "Author".to_string(),
-                        "id".to_string(),
-                        "reject id".to_string(),
-                        "Text of shit comment".to_string(),
-                    )],
-                )],
+                posts: vec![],
                 search_result: vec![],
             },
             Command::none(),
         )
     }
 
-    fn title(&self) -> String {
-        self.title.clone()
-    }
-
     fn update(&mut self, message: Self::Message) -> iced::Command<Self::Message> {
         match message {
             Message::SignIn => Command::perform(log_in(self.user.clone()), Message::Signed),
             Message::SignUp => Command::perform(log_in(self.user.clone()), Message::Registered),
-            Message::SwitchWindow(window) => {
-                self.title = format!("{}", &window);
-                self.current_window = window;
-                Command::none()
-            }
+            Message::SwitchWindow(window) => match window {
+                WindowState::AllPosts => {
+                    self.title = format!("{}", &window);
+                    self.current_window = window;
+                    Command::perform(get_all_posts(), |x| Message::PostAdd(x))
+                }
+                _ => {
+                    self.title = format!("{}", &window);
+                    self.current_window = window;
+                    Command::none()
+                }
+            },
             Message::Change(changer) => {
                 match changer {
                     Changers::EmailChange(value) => self.user.set_email(value),
@@ -89,15 +101,30 @@ impl Application for LostThoughts {
                 Command::none()
             }
             Message::Find(text) => {
-                println!("try to find {}", text);
-                Command::none()
+                println!("try to find {}", &text);
+                Command::perform(search(text, 0), Message::PostAdd)
             }
-            Message::PostAdd(_) => todo!(),
-            Message::DebugSwitch => {
-                println!("debbug is {}", self.debbug);
-                self.debbug = !self.debbug;
-                Command::none()
+            Message::PostAdd(posters) => {
+                println!("Start post add");
+                self.posts.clear();
+                match posters {
+                    Ok(e) => match e {
+                        Some(e) => {
+                            println!("find {:#?}", e);
+                            let mut e = e;
+                            self.posts.append(&mut e);
+                            println!("posts: {:#?}", self.posts);
+                            Command::none()
+                        }
+                        None => Command::none(),
+                    },
+                    Err(e) => {
+                        println!("{}", e);
+                        Command::none()
+                    }
+                }
             }
+
             Message::Signed(result) => match result {
                 Ok(e) => match e {
                     StatusCode::OK => {
@@ -116,10 +143,35 @@ impl Application for LostThoughts {
                 },
                 Err(_) => Command::none(),
             },
+            Message::Switcher(e) => match e {
+                messages::Switch::DebugPanelSwitch => {
+                    println!("debbug is {}", self.debbug);
+                    self.debbug = !self.debbug;
+                    Command::none()
+                }
+                messages::Switch::ChangePasswordSwtich => todo!(),
+                messages::Switch::ChangeEmailSwitch => todo!(),
+            },
         }
     }
 
     fn view(&self) -> iced::Element<'_, Self::Message, iced::Renderer<Self::Theme>> {
+        //create list of result from api
+        let mut result_list = column![].spacing(20).padding(30);
+        //parse it
+        for post in self.posts.iter() {
+            result_list = {
+                println!("{:#?}", &post);
+                result_list.push(column![
+                    button(text(post.get_label()))
+                        .on_press(Message::SwitchWindow(WindowState::Poster(post.clone()))),
+                    text(post.get_underlabel()),
+                    text(post.tags())
+                ])
+            };
+        }
+        //make it scroalbe
+        let scrollable_result_list = scrollable(result_list).width(Length::Fill);
         let content = match self.current_window {
             WindowState::Login => column![
                 input_field!("Login", self.user.get_login(), Changers::LoginChange),
@@ -161,15 +213,24 @@ impl Application for LostThoughts {
             ]
             .padding(30)
             .spacing(20),
-            WindowState::AllPosts => column![],
-            WindowState::Account => column![],
+            WindowState::AllPosts => column![scrollable_result_list].spacing(30).padding(30),
+            WindowState::Account => {
+                column![
+                    text(self.user.get_role()),
+                    text(self.user.get_login()),
+                    row![
+                        text_input("{}", self.user.get_password()).password(),
+                        button("Change?")
+                    ]
+                ]
+            }
             WindowState::Poster(ref post) => column![row![
                 row![button("back").on_press(Message::SwitchWindow(WindowState::Search))],
                 horizontal_space(Length::Fill),
                 row![column![
-                    text(post.get_title()),
-                    text(post.get_under_title()),
-                    row![scrollable(text(&post.tag()),),]
+                    text(post.get_label()),
+                    text(post.get_underlabel()),
+                    row![scrollable(text(&post.tags()),),]
                 ]
                 .align_items(iced::Alignment::Center)
                 .spacing(20),],
@@ -189,20 +250,6 @@ impl Application for LostThoughts {
                 .spacing(20)
                 .align_items(iced::Alignment::Center)
                 .padding(30);
-
-                //create list of result from api
-                let mut result_list = column![].spacing(20);
-                //parse it
-                for post in self.search_result.iter() {
-                    result_list = result_list.push(column![
-                        button(text(post.get_title()))
-                            .on_press(Message::SwitchWindow(WindowState::Poster(post.clone()))),
-                        text(post.get_under_title()),
-                        text(&post.tag())
-                    ]);
-                }
-                //make it scroalbe
-                let scrollable_result_list = scrollable(result_list).width(Length::Fill);
                 column![search_element, scrollable_result_list].spacing(30)
             }
         };
@@ -235,21 +282,5 @@ impl Application for LostThoughts {
             .padding(10)
             .align_items(iced::Alignment::Center)
             .into()
-    }
-    fn theme(&self) -> Self::Theme {
-        Theme::Dark
-    }
-
-    fn subscription(&self) -> Subscription<Message> {
-        subscription::events_with(|event, _status| match event {
-            Event::Keyboard(keyboard::Event::KeyPressed {
-                key_code,
-                modifiers,
-            }) if modifiers.control() => match (key_code, modifiers) {
-                (KeyCode::D, Modifiers::CTRL) => Some(Message::DebugSwitch),
-                _ => None,
-            },
-            _ => None,
-        })
     }
 }

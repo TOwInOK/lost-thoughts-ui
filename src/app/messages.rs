@@ -1,7 +1,7 @@
+use crate::api::errors::IOErrors;
+use crate::api::post::Post;
 use reqwest::StatusCode;
 use std::fmt;
-
-use crate::api::post::Post;
 
 #[derive(Debug, Clone)]
 pub enum WindowState {
@@ -29,14 +29,14 @@ impl fmt::Display for WindowState {
 #[derive(Debug, Clone)]
 pub enum Message {
     SignIn,
-    Signed(Result<StatusCode, String>),
+    Signed(Result<StatusCode, IOErrors>),
     SignUp,
-    Registered(Result<StatusCode, String>),
+    Registered(Result<StatusCode, IOErrors>),
     SwitchWindow(WindowState),
     Change(Changers),
     Find(String),
-    PostAdd(Vec<Post>),
-    DebugSwitch,
+    PostAdd(Result<Option<Vec<Post>>, IOErrors>),
+    Switcher(Switch),
 }
 #[derive(Debug, Clone)]
 pub enum Changers {
@@ -44,4 +44,11 @@ pub enum Changers {
     LoginChange(String),
     EmailChange(String),
     SearchChange(String),
+}
+
+#[derive(Debug, Clone)]
+pub enum Switch {
+    DebugPanelSwitch,
+    ChangePasswordSwtich,
+    ChangeEmailSwitch,
 }
