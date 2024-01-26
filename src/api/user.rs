@@ -4,6 +4,7 @@ use super::role::{default_role, Role};
 use serde::{Deserialize, Serialize};
 #[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct User {
+    #[serde(rename = "name", alias = "name")]
     login: String,
     password: String,
     email: String,
@@ -51,6 +52,20 @@ impl User {
 
     pub fn set_role(&mut self, value: Role) {
         self.role = value;
+    }
+
+    //other
+
+    pub fn login_is_empty(&self) -> bool {
+        self.login.is_empty()
+    }
+
+    ///just push post and set self on it
+    pub fn as_a_plain(&mut self, post: User) {
+        self.login = post.login;
+        self.password = post.password;
+        self.email = post.email;
+        self.role = post.role;
     }
 }
 

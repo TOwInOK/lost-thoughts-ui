@@ -1,7 +1,7 @@
 use super::comment::Comment;
 use serde::{Deserialize, Serialize};
 
-#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize, Eq)]
 pub struct Id {
     #[serde(rename = "$oid", alias = "$oid")]
     pub oid: String,
@@ -13,7 +13,7 @@ impl Id {
     }
 }
 
-#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize, Eq)]
 pub struct Post {
     #[serde(rename = "_id", alias = "_id")]
     pub id: Id,

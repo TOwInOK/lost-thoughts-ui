@@ -6,13 +6,13 @@ pub mod user;
 pub mod usermin;
 use errors::IOErrors;
 use post::*;
-use reqwest::{Client, StatusCode};
+use reqwest::Client;
 use serde_json::json;
 use user::*;
 
-pub async fn log_in(user: User) -> Result<StatusCode, IOErrors> {
+pub async fn log_in(user: User) -> Result<Option<User>, IOErrors> {
     let client = Client::new();
-    client
+    let response = client
         .get(format!(
             "https://api.lost-umbrella.com/user/{}/settings",
             user.get_login()
@@ -23,16 +23,26 @@ pub async fn log_in(user: User) -> Result<StatusCode, IOErrors> {
         }))
         .send()
         .await
-        .map(|e| {
-            println!("{:#?}", &e);
-            e.status()
-        })
-        .map_err(|e| IOErrors::SingIn(e.to_string()))
+        .map_err(|e| IOErrors::SingIn(e.to_string()))?;
+    println!("Send & Get");
+    if response.status().is_success() {
+        println!("Get Json");
+
+        let json: User = response
+            .json()
+            .await
+            .map_err(|e| IOErrors::SingIn(e.to_string()))?;
+
+        Ok(Some(json))
+    } else {
+        println!("Get Nothing");
+        Ok(None)
+    }
 }
 
-pub async fn sign_up(user: &User) -> Result<StatusCode, IOErrors> {
+pub async fn sign_up(user: &User) -> Result<Option<User>, IOErrors> {
     let client = Client::new();
-    client
+    let response = client
         .post("https://api.lost-umbrella.com/user/create".to_string())
         .json(&json!({
             "name": user.get_login(),
@@ -41,11 +51,19 @@ pub async fn sign_up(user: &User) -> Result<StatusCode, IOErrors> {
         }))
         .send()
         .await
-        .map(|e| {
-            println!("{:#?}", &e);
-            e.status()
-        })
-        .map_err(|e| IOErrors::SingUp(e.to_string()))
+        .map_err(|e| IOErrors::SingUp(e.to_string()))?;
+    println!("Send & Get");
+    if response.status().is_success() {
+        let json: User = response
+            .json()
+            .await
+            .map_err(|e| IOErrors::PostAdd(e.to_string()))?;
+        println!("Get Json");
+        Ok(Some(json))
+    } else {
+        println!("Get Nothing");
+        Ok(None)
+    }
 }
 
 pub async fn get_all_posts() -> Result<Option<Vec<Post>>, IOErrors> {

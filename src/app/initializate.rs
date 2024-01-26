@@ -8,7 +8,6 @@ use iced::keyboard::{KeyCode, Modifiers};
 use iced::widget::{button, column, horizontal_space, row, scrollable, text, text_input};
 use iced::Command;
 use iced::{executor, keyboard, subscription, Application, Event, Length, Subscription, Theme};
-use reqwest::StatusCode;
 
 macro_rules! input_field {
     ($label:expr, $value:expr, $msg:expr) => {
@@ -72,6 +71,7 @@ impl Application for LostThoughts {
                 search_result: vec![],
                 password: String::new(),
                 password_repit: String::new(),
+                prevision_screen: WindowState::None,
             },
             Command::none(),
         )
@@ -147,22 +147,29 @@ impl Application for LostThoughts {
             //Signed
             Message::Signed(result) => match result {
                 Ok(e) => match e {
-                    StatusCode::OK => {
-                        Command::perform(async {}, |_| Message::SwitchWindow(WindowState::AllPosts))
+                    Some(e) => {
+                        self.user = e;
+                        Command::perform(async {}, |_| Message::SwitchWindow(WindowState::Search))
                     }
-                    _ => Command::none(),
+                    None => {
+                        println!("SIGNED NONE");
+                        Command::none()
+                    }
                 },
-                Err(_) => Command::none(),
+                Err(e) => {
+                    println!("Signed Error: {}", e);
+                    Command::none()
+                }
             },
             //Signed
 
             //Registered
             Message::Registered(result) => match result {
                 Ok(e) => match e {
-                    StatusCode::OK => {
+                    Some(_) => {
                         Command::perform(async {}, |_| Message::SwitchWindow(WindowState::Login))
                     }
-                    _ => Command::none(),
+                    None => Command::none(),
                 },
                 Err(_) => Command::none(),
             },
@@ -179,6 +186,10 @@ impl Application for LostThoughts {
                 messages::Switch::ChangeEmailSwitch => todo!(),
             },
             //Switcher
+
+            //Back
+            Message::Back => Command::none(),
+            //Back
         }
     }
 
@@ -254,17 +265,23 @@ impl Application for LostThoughts {
 
             //Start Account Sigment
             WindowState::Account => {
-                let bool = true;
+                let bool = false;
                 column![
                     //Role text
                     text(format!("Role: {}", self.user.get_role())),
                     //Account name
-                    text(format!("Account name: {}", self.user.get_role())),
+                    text(format!("Account name: {}", self.user.get_login())),
+                    //Account email
+                    text(format!("Account Email: {}", self.user.get_email())),
                     //Password rows
                     if !bool {
                         column![row![
                             text_input("SomeShit", self.user.get_password()).password(),
-                            button("Change?")
+                            row![
+                                horizontal_space(Length::Fill),
+                                button("Change?"),
+                                horizontal_space(Length::Fill),
+                            ]
                         ]]
                     } else {
                         column![
@@ -320,14 +337,26 @@ impl Application for LostThoughts {
                 .align_items(iced::Alignment::Center)
                 .padding(30);
                 column![search_element, scrollable_result_list].spacing(30)
-            } //End Search Sigment
+            }
+            WindowState::None => column![text("404").size(90)],
         };
         //End Content Sigment
 
         //Start Logo
-        let logo = column![
+        let logo = row![
             //Logo
             text("Monotiper").size(40),
+            if self.current_window != WindowState::Login
+                && self.current_window != WindowState::Register
+            {
+                row![
+                    horizontal_space(Length::Fill),
+                    button(text(format!("Account: {}", self.user.get_login())))
+                        .on_press(Message::SwitchWindow(WindowState::Account)),
+                ]
+            } else {
+                row![]
+            }
         ]
         .padding(30)
         .align_items(iced::Alignment::Center);
@@ -335,6 +364,7 @@ impl Application for LostThoughts {
 
         //Start DebbugMenu
         let debbug_menu = if self.debbug {
+            //do overlay
             row![
                 horizontal_space(Length::Fill),
                 button("Login").on_press(Message::SwitchWindow(WindowState::Login)),

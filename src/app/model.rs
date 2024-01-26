@@ -8,6 +8,7 @@ pub struct LostThoughts {
     //Arround
     pub title: String,
     pub current_window: WindowState,
+    pub prevision_screen: WindowState,
 
     //AnyStru
     pub user: User,
