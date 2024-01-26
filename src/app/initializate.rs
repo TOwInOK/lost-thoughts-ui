@@ -72,6 +72,7 @@ impl Application for LostThoughts {
                 password: String::new(),
                 password_repit: String::new(),
                 prevision_screen: WindowState::None,
+                forvard_screen: WindowState::None,
             },
             Command::none(),
         )
@@ -96,6 +97,7 @@ impl Application for LostThoughts {
                 }
                 _ => {
                     self.title = format!("{}", &window);
+                    self.prevision_screen = self.current_window.clone();
                     self.current_window = window;
                     Command::none()
                 }
@@ -188,8 +190,26 @@ impl Application for LostThoughts {
             //Switcher
 
             //Back
-            Message::Back => Command::none(),
+            Message::Back => {
+                if self.prevision_screen != WindowState::None
+                    && self.prevision_screen != self.current_window
+                {
+                    self.forvard_screen = self.current_window.clone();
+                    self.current_window = self.prevision_screen.clone();
+                }
+                Command::none()
+            }
             //Back
+
+            //ReBack
+            Message::ReBack => {
+                if self.forvard_screen != WindowState::None
+                    && self.forvard_screen != self.current_window
+                {
+                    self.current_window = self.forvard_screen.clone();
+                }
+                Command::none()
+            } //ReBack
         }
     }
 
@@ -345,21 +365,21 @@ impl Application for LostThoughts {
         //Start Logo
         let logo = row![
             //Logo
+            button("<").on_press(Message::Back),
+            button(">").on_press(Message::ReBack),
+            horizontal_space(Length::Fill),
             text("Monotiper").size(40),
+            horizontal_space(Length::Fill),
             if self.current_window != WindowState::Login
                 && self.current_window != WindowState::Register
             {
-                row![
-                    horizontal_space(Length::Fill),
-                    button(text(format!("Account: {}", self.user.get_login())))
-                        .on_press(Message::SwitchWindow(WindowState::Account)),
-                ]
+                row![button(text(format!("Account: {}", self.user.get_login())))
+                    .on_press(Message::SwitchWindow(WindowState::Account)),]
             } else {
                 row![]
             }
         ]
-        .padding(30)
-        .align_items(iced::Alignment::Center);
+        .padding(30);
         //End Logo
 
         //Start DebbugMenu

@@ -1,7 +1,7 @@
 use crate::api::errors::IOErrors;
 use crate::api::post::Post;
 use crate::api::user::User;
-use std::fmt::{self, write};
+use std::fmt;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum WindowState {
@@ -40,6 +40,7 @@ pub enum Message {
     PostAdd(Result<Option<Vec<Post>>, IOErrors>),
     Switcher(Switch),
     Back,
+    ReBack,
 }
 #[derive(Debug, Clone)]
 pub enum Changers {
