@@ -10,13 +10,14 @@ pub enum WindowState {
     AllPosts,
     Account,
     Poster(Post),
+    PosterChange(Option<Post>),
     Search,
     None,
 }
 
 impl fmt::Display for WindowState {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match *self {
+        match self {
             WindowState::Login => write!(f, "Login"),
             WindowState::Register => write!(f, "Register"),
             WindowState::AllPosts => write!(f, "AllPosts"),
@@ -24,6 +25,10 @@ impl fmt::Display for WindowState {
             WindowState::Poster(_) => write!(f, "Poster"),
             WindowState::Search => write!(f, "Search"),
             WindowState::None => write!(f, "None"),
+            WindowState::PosterChange(poster) => match poster {
+                Some(_) => write!(f, "Edit post"),
+                None => write!(f, "Create post"),
+            },
         }
     }
 }
@@ -44,10 +49,21 @@ pub enum Message {
 }
 #[derive(Debug, Clone)]
 pub enum Changers {
+    //Login & Register
     PasswordChange(String),
     LoginChange(String),
     EmailChange(String),
+
+    //Search Screen
     SearchChange(String),
+
+    //Poster Changer Screen
+    Label(String),
+    UnderLabel(String),
+    Text(String),
+    Footer(String),
+    Tags(String),
+    Author(String),
 }
 
 #[derive(Debug, Clone)]

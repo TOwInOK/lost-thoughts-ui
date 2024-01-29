@@ -76,6 +76,14 @@ impl Post {
         &self.tags
     }
 
+    pub fn get_tags_to_string(&self) -> String {
+        self.tags.join(", ")
+    }
+
+    pub fn get_author_to_string(&self) -> String {
+        self.author.join(", ")
+    }
+
     pub fn get_comments(&self) -> &Vec<Comment> {
         &self.comments
     }
@@ -131,5 +139,9 @@ impl Post {
 
     pub fn set_footer(&mut self, footer: String) {
         self.footer = footer;
+    }
+
+    pub fn string_to_tags(&mut self, input: &str) {
+        self.tags = input.split(',').map(|s| s.trim().to_string()).collect();
     }
 }

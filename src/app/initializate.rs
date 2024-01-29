@@ -5,15 +5,34 @@ use super::messages::{self, Changers, Message, WindowState};
 use super::model::LostThoughts;
 use crate::api::*;
 use iced::keyboard::{KeyCode, Modifiers};
-use iced::widget::{button, column, horizontal_space, row, scrollable, text, text_input};
+use iced::widget::{
+    button, column, horizontal_space, row, scrollable, text, text_input, vertical_space,
+};
 use iced::Command;
 use iced::{executor, keyboard, subscription, Application, Event, Length, Subscription, Theme};
 
+///input_field!(`LABEL_TEXT`, `Value to change`, `Message to perform`)
+///
+///`Label` - Placeholder
+///
+///`Value to change` - get text to fill this field
+///
+///`Message to perform` - change this text in the self
 macro_rules! input_field {
     ($label:expr, $value:expr, $msg:expr) => {
         text_input($label, $value).on_input(|value| Message::Change($msg(value)))
     };
 }
+
+///input_field!(`LABEL_TEXT`, `Value to change`, `Message to perform`)
+///
+///Automatic has `.password()`
+///
+///`Label` - Placeholder
+///
+///`Value to change` - get text to fill this field
+///
+///`Message to perform` - change this text in the self
 macro_rules! secure_input_field {
     ($label:expr, $value:expr, $msg:expr) => {
         text_input($label, $value)
@@ -73,6 +92,12 @@ impl Application for LostThoughts {
                 password_repit: String::new(),
                 prevision_screen: WindowState::None,
                 forvard_screen: WindowState::None,
+                label: String::new(),
+                under_label: String::new(),
+                text: String::new(),
+                footer: String::new(),
+                tags: String::new(),
+                author: String::new(),
             },
             Command::none(),
         )
@@ -92,11 +117,39 @@ impl Application for LostThoughts {
             Message::SwitchWindow(window) => match window {
                 WindowState::AllPosts => {
                     self.title = format!("{}", &window);
+                    self.prevision_screen = self.current_window.clone();
                     self.current_window = window;
                     Command::perform(get_all_posts(), Message::PostAdd)
                 }
+                WindowState::PosterChange(ref poster) => {
+                    match poster {
+                        Some(e) => {
+                            self.title = format!("Change post – {}", e.get_label());
+                            self.label = e.get_label().to_owned();
+                            self.under_label = e.get_underlabel().to_owned();
+                            self.text = e.get_text().to_owned();
+                            self.footer = e.get_footer().to_owned();
+                            self.tags = e.get_tags_to_string();
+                            self.author = e.get_author_to_string();
+
+                            //Back & ReBack buttons state
+                            self.prevision_screen = self.current_window.clone();
+                            self.current_window = window;
+                        }
+                        None => {
+                            self.title = format!("Create post – {}", self.label);
+
+                            //Back & ReBack buttons state
+                            self.prevision_screen = self.current_window.clone();
+                            self.current_window = window;
+                        }
+                    }
+                    Command::none()
+                }
                 _ => {
                     self.title = format!("{}", &window);
+
+                    //Back & ReBack buttons state
                     self.prevision_screen = self.current_window.clone();
                     self.current_window = window;
                     Command::none()
@@ -111,6 +164,12 @@ impl Application for LostThoughts {
                     Changers::LoginChange(value) => self.user.set_login(value),
                     Changers::PasswordChange(value) => self.user.set_password(value),
                     Changers::SearchChange(value) => self.search = value,
+                    Changers::Label(value) => self.label = value,
+                    Changers::UnderLabel(value) => self.under_label = value,
+                    Changers::Text(value) => self.text = value,
+                    Changers::Footer(value) => self.footer = value,
+                    Changers::Tags(value) => self.tags = value,
+                    Changers::Author(value) => self.author = value,
                 }
                 Command::none()
             }
@@ -232,7 +291,7 @@ impl Application for LostThoughts {
         //End Scrollable Poster List Sigment
 
         //Start Content Sigment
-        let content = match self.current_window {
+        let content = match &self.current_window {
             //Login Sigment
             WindowState::Login => column![
                 input_field!("Login", self.user.get_login(), Changers::LoginChange),
@@ -327,8 +386,13 @@ impl Application for LostThoughts {
                 //End Account Sigment
             }
             //Start Poster Sigment
-            WindowState::Poster(ref post) => column![row![
-                row![button("back").on_press(Message::SwitchWindow(WindowState::Search))],
+            WindowState::Poster(post) => column![row![
+                row![
+                    button("back").on_press(Message::SwitchWindow(WindowState::Search)),
+                    button("Edit").on_press(Message::SwitchWindow(WindowState::PosterChange(
+                        Some(post.clone())
+                    ))),
+                ],
                 horizontal_space(Length::Fill),
                 row![column![
                     text(post.get_label()),
@@ -340,6 +404,31 @@ impl Application for LostThoughts {
                 horizontal_space(Length::Fill),
             ],],
             //End Poster Sigment
+
+            //Start PosterChange Sigment
+            //change post and push it if it some, else create new post
+            WindowState::PosterChange(_) => column![
+                //Label
+                input_field!("Lable", &self.label, Changers::Label),
+                //Under Label
+                input_field!("Under Lable", &self.under_label, Changers::UnderLabel),
+                //Text
+                input_field!("Lorem Ipsum?", &self.text, Changers::Text),
+                //footer
+                input_field!("Footer", &self.footer, Changers::Footer),
+                //Tags
+                input_field!("Milk, Cow, Grass", &self.tags, Changers::Tags),
+                //Assigments (authors)
+                input_field!("User1, User2, User3", &self.author, Changers::Author),
+                vertical_space(Length::Fill),
+                row![
+                    button("clear"),
+                    horizontal_space(Length::Fill),
+                    button("push"),
+                ],
+            ]
+            .padding(30),
+            //End PosterChange Sigment
 
             //Start Search Sigment
             WindowState::Search => {
@@ -372,6 +461,7 @@ impl Application for LostThoughts {
             horizontal_space(Length::Fill),
             if self.current_window != WindowState::Login
                 && self.current_window != WindowState::Register
+                && self.current_window != WindowState::Account
             {
                 row![button(text(format!("Account: {}", self.user.get_login())))
                     .on_press(Message::SwitchWindow(WindowState::Account)),]
@@ -392,6 +482,8 @@ impl Application for LostThoughts {
                 button("AllPosts").on_press(Message::SwitchWindow(WindowState::AllPosts)),
                 button("Account").on_press(Message::SwitchWindow(WindowState::Account)),
                 button("Search").on_press(Message::SwitchWindow(WindowState::Search)),
+                button("Edit Pist")
+                    .on_press(Message::SwitchWindow(WindowState::PosterChange(None))),
                 horizontal_space(Length::Fill),
             ]
             .align_items(iced::Alignment::Center)

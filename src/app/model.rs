@@ -24,4 +24,12 @@ pub struct LostThoughts {
     pub search: String,
     pub password: String,
     pub password_repit: String,
+
+    //Poster change screen
+    pub label: String,
+    pub under_label: String,
+    pub text: String,
+    pub footer: String,
+    pub tags: String,
+    pub author: String,
 }

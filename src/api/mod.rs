@@ -27,7 +27,6 @@ pub async fn log_in(user: User) -> Result<Option<User>, IOErrors> {
     println!("Send & Get");
     if response.status().is_success() {
         println!("Get Json");
-
         let json: User = response
             .json()
             .await
