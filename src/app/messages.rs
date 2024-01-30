@@ -44,6 +44,7 @@ pub enum Message {
     Find(String),
     PostAdd(Result<Option<Vec<Post>>, IOErrors>),
     Switcher(Switch),
+    Clear,
     Back,
     ReBack,
 }

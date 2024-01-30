@@ -137,7 +137,7 @@ impl Application for LostThoughts {
                             self.current_window = window;
                         }
                         None => {
-                            self.title = format!("Create post – {}", self.label);
+                            self.title = format!("Create post");
 
                             //Back & ReBack buttons state
                             self.prevision_screen = self.current_window.clone();
@@ -268,7 +268,17 @@ impl Application for LostThoughts {
                     self.current_window = self.forvard_screen.clone();
                 }
                 Command::none()
-            } //ReBack
+            }
+            //ReBack
+            Message::Clear => {
+                self.label.clear();
+                self.under_label.clear();
+                self.text.clear();
+                self.footer.clear();
+                self.tags.clear();
+                self.author.clear();
+                Command::none()
+            }
         }
     }
 
@@ -422,7 +432,7 @@ impl Application for LostThoughts {
                 input_field!("User1, User2, User3", &self.author, Changers::Author),
                 vertical_space(Length::Fill),
                 row![
-                    button("clear"),
+                    button("clear").on_press(Message::Clear),
                     horizontal_space(Length::Fill),
                     button("push"),
                 ],
