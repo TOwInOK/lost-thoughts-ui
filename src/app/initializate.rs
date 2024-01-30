@@ -98,6 +98,7 @@ impl Application for LostThoughts {
                 footer: String::new(),
                 tags: String::new(),
                 author: String::new(),
+                id: String::new(),
             },
             Command::none(),
         )
@@ -110,7 +111,7 @@ impl Application for LostThoughts {
             //Sign In
 
             //SignUp
-            Message::SignUp => Command::perform(log_in(self.user.clone()), Message::Registered),
+            Message::SignUp => Command::perform(sign_up(self.user.clone()), Message::Registered),
             //SignUp
 
             //SwitchWindow
@@ -124,6 +125,7 @@ impl Application for LostThoughts {
                 WindowState::PosterChange(ref poster) => {
                     match poster {
                         Some(e) => {
+                            self.id = e.get_id().to_owned();
                             self.title = format!("Change post – {}", e.get_label());
                             self.label = e.get_label().to_owned();
                             self.under_label = e.get_underlabel().to_owned();
@@ -279,6 +281,7 @@ impl Application for LostThoughts {
                 self.author.clear();
                 Command::none()
             }
+            Message::Push => todo!(),
         }
     }
 
@@ -418,6 +421,11 @@ impl Application for LostThoughts {
             //Start PosterChange Sigment
             //change post and push it if it some, else create new post
             WindowState::PosterChange(_) => column![
+                if &self.id != "" {
+                    row![text(format!("Id: {}", &self.id)), button("Copy")]
+                } else {
+                    row![text("")]
+                },
                 //Label
                 input_field!("Lable", &self.label, Changers::Label),
                 //Under Label
@@ -433,9 +441,15 @@ impl Application for LostThoughts {
                 vertical_space(Length::Fill),
                 row![
                     button("clear").on_press(Message::Clear),
+                    if &self.id != "" {
+                        row![button("delete")]
+                    } else {
+                        row![text("")]
+                    },
                     horizontal_space(Length::Fill),
-                    button("push"),
-                ],
+                    button("push").on_press(Message::Push),
+                ]
+                .spacing(30),
             ]
             .padding(30),
             //End PosterChange Sigment

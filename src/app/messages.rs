@@ -35,15 +35,21 @@ impl fmt::Display for WindowState {
 
 #[derive(Debug, Clone)]
 pub enum Message {
-    SignIn,
+    ///Perform Check signed from Signed message
     Signed(Result<Option<User>, IOErrors>),
-    SignUp,
+    ///Perform Check register from Register message
     Registered(Result<Option<User>, IOErrors>),
+    ///Get User from server
+    SignIn,
+    ///Register User on server
+    SignUp,
+    ///Switch window of `WindowState`
     SwitchWindow(WindowState),
     Change(Changers),
     Find(String),
     PostAdd(Result<Option<Vec<Post>>, IOErrors>),
     Switcher(Switch),
+    Push,
     Clear,
     Back,
     ReBack,

@@ -26,6 +26,7 @@ pub struct LostThoughts {
     pub password_repit: String,
 
     //Poster change screen
+    pub id: String,
     pub label: String,
     pub under_label: String,
     pub text: String,

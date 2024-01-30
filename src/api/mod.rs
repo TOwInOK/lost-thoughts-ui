@@ -39,7 +39,7 @@ pub async fn log_in(user: User) -> Result<Option<User>, IOErrors> {
     }
 }
 
-pub async fn sign_up(user: &User) -> Result<Option<User>, IOErrors> {
+pub async fn sign_up(user: User) -> Result<Option<User>, IOErrors> {
     let client = Client::new();
     let response = client
         .post("https://api.lost-umbrella.com/user/create".to_string())
