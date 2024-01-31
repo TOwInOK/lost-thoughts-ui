@@ -155,3 +155,69 @@ pub async fn get_post_by_id(post_id: &str) -> Result<Option<Post>, IOErrors> {
         Ok(None)
     }
 }
+
+pub async fn push(post: NewPost, user: User) -> Result<Option<String>, IOErrors> {
+    if post.get_id().is_empty() {
+        //Create new post
+        let client = Client::new();
+        let response = client
+            .post("https://api.lost-umbrella.com/post/create")
+            .json(&json!(
+                {
+                    "post": &post,
+                    "auth":  {
+                        "name": user.get_login(),
+                        "password": user.get_password(),
+                    }
+                }
+            ))
+            .send()
+            .await
+            .map_err(|e| IOErrors::PostPush(e.to_string()))?;
+        println!("Send & Get");
+
+        if response.status().is_success() {
+            println!("Seccess post");
+            Ok(Some(
+                response
+                    .text()
+                    .await
+                    .map_err(|e| IOErrors::PostPush(e.to_string()))?,
+            ))
+        } else {
+            println!("Get Nothing");
+            Ok(None)
+        }
+    } else {
+        //Change exist post
+        let client = Client::new();
+        let response = client
+            .put("https://api.lost-umbrella.com/post/edit")
+            .json(&json!(
+                {
+                "post": &post,
+                "auth":  {
+                    "name": user.get_login(),
+                    "password": user.get_password(),
+                }
+            }
+            ))
+            .send()
+            .await
+            .map_err(|e| IOErrors::PostPush(e.to_string()))?;
+        println!("Send & Get");
+
+        if response.status().is_success() {
+            println!("Seccess put");
+            Ok(Some(
+                response
+                    .text()
+                    .await
+                    .map_err(|e| IOErrors::PostPush(e.to_string()))?,
+            ))
+        } else {
+            println!("Get Nothing");
+            Ok(None)
+        }
+    }
+}

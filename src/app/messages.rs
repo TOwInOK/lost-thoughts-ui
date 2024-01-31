@@ -53,6 +53,8 @@ pub enum Message {
     Clear,
     Back,
     ReBack,
+    FindById(String),
+    None,
 }
 #[derive(Debug, Clone)]
 pub enum Changers {

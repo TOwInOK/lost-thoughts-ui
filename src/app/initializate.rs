@@ -2,7 +2,7 @@ use self::role::Role;
 use self::user::User;
 
 use super::messages::{self, Changers, Message, WindowState};
-use super::model::LostThoughts;
+use super::model::{LocalPost, LostThoughts};
 use crate::api::*;
 use iced::keyboard::{KeyCode, Modifiers};
 use iced::widget::{
@@ -92,13 +92,7 @@ impl Application for LostThoughts {
                 password_repit: String::new(),
                 prevision_screen: WindowState::None,
                 forvard_screen: WindowState::None,
-                label: String::new(),
-                under_label: String::new(),
-                text: String::new(),
-                footer: String::new(),
-                tags: String::new(),
-                author: String::new(),
-                id: String::new(),
+                local_post: LocalPost::empty_new(),
             },
             Command::none(),
         )
@@ -125,21 +119,22 @@ impl Application for LostThoughts {
                 WindowState::PosterChange(ref poster) => {
                     match poster {
                         Some(e) => {
-                            self.id = e.get_id().to_owned();
                             self.title = format!("Change post – {}", e.get_label());
-                            self.label = e.get_label().to_owned();
-                            self.under_label = e.get_underlabel().to_owned();
-                            self.text = e.get_text().to_owned();
-                            self.footer = e.get_footer().to_owned();
-                            self.tags = e.get_tags_to_string();
-                            self.author = e.get_author_to_string();
-
+                            self.local_post.set_id(e.get_id().to_owned());
+                            self.local_post.set_label(e.get_label().to_owned());
+                            self.local_post
+                                .set_under_label(e.get_underlabel().to_owned());
+                            self.local_post.set_text(e.text.to_owned());
+                            self.local_post.set_footer(e.get_footer().to_owned());
+                            self.local_post.set_tags(e.get_tags_to_string());
+                            self.local_post.set_author(e.get_author_to_string());
                             //Back & ReBack buttons state
                             self.prevision_screen = self.current_window.clone();
                             self.current_window = window;
                         }
                         None => {
                             self.title = format!("Create post");
+                            self.local_post.clear();
 
                             //Back & ReBack buttons state
                             self.prevision_screen = self.current_window.clone();
@@ -166,12 +161,12 @@ impl Application for LostThoughts {
                     Changers::LoginChange(value) => self.user.set_login(value),
                     Changers::PasswordChange(value) => self.user.set_password(value),
                     Changers::SearchChange(value) => self.search = value,
-                    Changers::Label(value) => self.label = value,
-                    Changers::UnderLabel(value) => self.under_label = value,
-                    Changers::Text(value) => self.text = value,
-                    Changers::Footer(value) => self.footer = value,
-                    Changers::Tags(value) => self.tags = value,
-                    Changers::Author(value) => self.author = value,
+                    Changers::Label(value) => self.local_post.set_label(value),
+                    Changers::UnderLabel(value) => self.local_post.set_under_label(value),
+                    Changers::Text(value) => self.local_post.set_text(value),
+                    Changers::Footer(value) => self.local_post.set_footer(value),
+                    Changers::Tags(value) => self.local_post.set_tags(value),
+                    Changers::Author(value) => self.local_post.set_author(value),
                 }
                 Command::none()
             }
@@ -272,16 +267,33 @@ impl Application for LostThoughts {
                 Command::none()
             }
             //ReBack
+
+            //Clear
             Message::Clear => {
-                self.label.clear();
-                self.under_label.clear();
-                self.text.clear();
-                self.footer.clear();
-                self.tags.clear();
-                self.author.clear();
+                self.local_post.clear();
                 Command::none()
             }
-            Message::Push => todo!(),
+            //Clear
+
+            //Push
+            Message::Push => Command::perform(
+                push(self.local_post.clone().to_new_post(), self.user.clone()),
+                //Так как мы обновили статью, её нужно обновить у нас.
+                //Было два стула 1. Обновлять локально
+                //               2. Получить просто с сервера <--- путь наименьшего ебения
+                |e| match e {
+                    Ok(e) => match e {
+                        Some(e) => Message::FindById(e),
+                        None => Message::SwitchWindow(WindowState::None),
+                    },
+                    Err(_) => Message::SwitchWindow(WindowState::None),
+                },
+            ),
+
+            //Переход по статье
+            Message::FindById(_) => todo!(),
+
+            Message::None => Command::none(),
         }
     }
 
@@ -402,9 +414,16 @@ impl Application for LostThoughts {
             WindowState::Poster(post) => column![row![
                 row![
                     button("back").on_press(Message::SwitchWindow(WindowState::Search)),
-                    button("Edit").on_press(Message::SwitchWindow(WindowState::PosterChange(
-                        Some(post.clone())
-                    ))),
+                    if post
+                        .get_author()
+                        .contains(&self.user.get_login().to_string())
+                    {
+                        row![button("Edit").on_press(Message::SwitchWindow(
+                            WindowState::PosterChange(Some(post.clone()),)
+                        ))]
+                    } else {
+                        row![]
+                    },
                 ],
                 horizontal_space(Length::Fill),
                 row![column![
@@ -421,27 +440,42 @@ impl Application for LostThoughts {
             //Start PosterChange Sigment
             //change post and push it if it some, else create new post
             WindowState::PosterChange(_) => column![
-                if &self.id != "" {
-                    row![text(format!("Id: {}", &self.id)), button("Copy")]
+                if self.local_post.is_empty_id() {
+                    row![
+                        text(format!("Id: {}", &self.local_post.get_id())),
+                        button("Copy")
+                    ]
                 } else {
                     row![text("")]
                 },
                 //Label
-                input_field!("Lable", &self.label, Changers::Label),
+                input_field!("Lable", &self.local_post.get_label(), Changers::Label),
                 //Under Label
-                input_field!("Under Lable", &self.under_label, Changers::UnderLabel),
+                input_field!(
+                    "Under Lable",
+                    &self.local_post.get_under_label(),
+                    Changers::UnderLabel
+                ),
                 //Text
-                input_field!("Lorem Ipsum?", &self.text, Changers::Text),
+                input_field!("Lorem Ipsum?", &self.local_post.get_text(), Changers::Text),
                 //footer
-                input_field!("Footer", &self.footer, Changers::Footer),
+                input_field!("Footer", &self.local_post.get_footer(), Changers::Footer),
                 //Tags
-                input_field!("Milk, Cow, Grass", &self.tags, Changers::Tags),
+                input_field!(
+                    "Milk, Cow, Grass",
+                    &self.local_post.get_tags(),
+                    Changers::Tags
+                ),
                 //Assigments (authors)
-                input_field!("User1, User2, User3", &self.author, Changers::Author),
+                input_field!(
+                    "User1, User2, User3",
+                    &self.local_post.get_author(),
+                    Changers::Author
+                ),
                 vertical_space(Length::Fill),
                 row![
                     button("clear").on_press(Message::Clear),
-                    if &self.id != "" {
+                    if self.local_post.is_empty_id() {
                         row![button("delete")]
                     } else {
                         row![text("")]

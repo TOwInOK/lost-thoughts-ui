@@ -8,4 +8,6 @@ pub enum IOErrors {
     SingUp(String),
     #[error("Register error: `{0}`")]
     PostAdd(String),
+    #[error("PostPush error: `{0}`")]
+    PostPush(String),
 }
