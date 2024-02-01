@@ -289,7 +289,9 @@ impl Application for LostThoughts {
                     Err(_) => Message::SwitchWindow(WindowState::None),
                 },
             ),
+            //Push
 
+            //FindBydID
             //Переход по статье
             //Если при проходке по статьям найден same id мы его обновляем инче добавляем новый пост и открываем его через Message::Post
             Message::FindById(id) => Command::perform(get_post_by_id(id), |x| {
@@ -302,8 +304,17 @@ impl Application for LostThoughts {
                     Err(_) => Message::None,
                 }
             }),
+            //FindBydID
 
+            //Delete
+            Message::Delete(id) => Command::perform(delete(id, self.user.clone()), |_| {
+                Message::SwitchWindow(WindowState::Search)
+            }),
+            //Delete
+
+            //None
             Message::None => Command::none(),
+            //None
         }
     }
 
@@ -432,7 +443,7 @@ impl Application for LostThoughts {
                             button("Edit").on_press(Message::SwitchWindow(
                                 WindowState::PosterChange(Some(post.clone()))
                             )),
-                            button("Delete")
+                            button("Delete").on_press(Message::Delete(post.get_id().to_owned()))
                         ]
                         .spacing(30)
                     } else {

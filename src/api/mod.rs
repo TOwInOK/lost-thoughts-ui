@@ -225,6 +225,37 @@ pub async fn push(mut post: NewPost, user: User) -> Result<Option<String>, IOErr
     }
 }
 
+pub async fn delete(post_id: String, user: User) -> Result<Option<()>, IOErrors> {
+    println!("Start method remove");
+    println!("Post id is: {:#?}", &post_id);
+    let client = Client::new();
+    let response = client
+        .delete(format!(
+            "https://api.lost-umbrella.com/post/{}/delete",
+            post_id
+        ))
+        .json(&json!(
+            {
+                "name": user.get_login(),
+                "password": user.get_password(),
+            }
+        ))
+        .send()
+        .await
+        .map_err(|e| IOErrors::PostDelete(e.to_string()))?;
+    println!("Send & Get");
+
+    if response.status().is_success() {
+        // Возвращаем
+        println!("Ok: {}", response.status());
+        Ok(Some(()))
+    } else {
+        // В случае ошибки возвращаем None
+        println!("None: {}", response.status());
+        Ok(None)
+    }
+}
+
 #[derive(Debug, Deserialize)]
 struct ServerResponse {
     #[serde(alias = "insertedId")]

@@ -10,4 +10,6 @@ pub enum IOErrors {
     PostAdd(String),
     #[error("PostPush error: `{0}`")]
     PostPush(String),
+    #[error("Remove error: `{0}`")]
+    PostDelete(String),
 }

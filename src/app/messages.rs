@@ -53,6 +53,7 @@ pub enum Message {
     Clear,
     Back,
     ReBack,
+    Delete(String),
     FindById(String),
     None,
 }
