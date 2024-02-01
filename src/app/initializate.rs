@@ -291,7 +291,17 @@ impl Application for LostThoughts {
             ),
 
             //Переход по статье
-            Message::FindById(_) => todo!(),
+            //Если при проходке по статьям найден same id мы его обновляем инче добавляем новый пост и открываем его через Message::Post
+            Message::FindById(id) => Command::perform(get_post_by_id(id), |x| {
+                println!("{:#?}", x);
+                match x {
+                    Ok(e) => match e {
+                        Some(e) => Message::SwitchWindow(WindowState::Poster(e)),
+                        None => Message::None,
+                    },
+                    Err(_) => Message::None,
+                }
+            }),
 
             Message::None => Command::none(),
         }
@@ -307,7 +317,7 @@ impl Application for LostThoughts {
                     button(text(post.get_label()))
                         .on_press(Message::SwitchWindow(WindowState::Poster(post.clone()))),
                     text(post.get_underlabel()),
-                    text(post.tags())
+                    text(post.get_tags_to_string())
                 ])
             };
         }
@@ -412,15 +422,19 @@ impl Application for LostThoughts {
             }
             //Start Poster Sigment
             WindowState::Poster(post) => column![row![
-                row![
+                column![
                     button("back").on_press(Message::SwitchWindow(WindowState::Search)),
                     if post
                         .get_author()
                         .contains(&self.user.get_login().to_string())
                     {
-                        row![button("Edit").on_press(Message::SwitchWindow(
-                            WindowState::PosterChange(Some(post.clone()),)
-                        ))]
+                        row![
+                            button("Edit").on_press(Message::SwitchWindow(
+                                WindowState::PosterChange(Some(post.clone()))
+                            )),
+                            button("Delete")
+                        ]
+                        .spacing(30)
                     } else {
                         row![]
                     },
@@ -429,7 +443,8 @@ impl Application for LostThoughts {
                 row![column![
                     text(post.get_label()),
                     text(post.get_underlabel()),
-                    row![scrollable(text(&post.tags()),),]
+                    row![scrollable(text(&post.get_author_to_string()))],
+                    row![scrollable(text(&post.get_tags_to_string()))]
                 ]
                 .align_items(iced::Alignment::Center)
                 .spacing(20),],

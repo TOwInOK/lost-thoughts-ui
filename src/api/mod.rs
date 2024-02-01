@@ -7,6 +7,7 @@ pub mod usermin;
 use errors::IOErrors;
 use post::*;
 use reqwest::Client;
+use serde::Deserialize;
 use serde_json::json;
 use user::*;
 
@@ -130,8 +131,9 @@ pub async fn search(find: String, page: u32) -> Result<Option<Vec<Post>>, IOErro
     Ok(if json.is_empty() { None } else { Some(json) })
 }
 
-pub async fn get_post_by_id(post_id: &str) -> Result<Option<Post>, IOErrors> {
+pub async fn get_post_by_id(post_id: String) -> Result<Option<Post>, IOErrors> {
     println!("Start method get_post_by_id");
+    println!("Post id is: {:#?}", &post_id);
     let client = Client::new();
     let response = client
         .get(format!("https://api.lost-umbrella.com/post/{}", post_id))
@@ -156,9 +158,10 @@ pub async fn get_post_by_id(post_id: &str) -> Result<Option<Post>, IOErrors> {
     }
 }
 
-pub async fn push(post: NewPost, user: User) -> Result<Option<String>, IOErrors> {
+pub async fn push(mut post: NewPost, user: User) -> Result<Option<String>, IOErrors> {
     if post.get_id().is_empty() {
         //Create new post
+        post.id = None;
         let client = Client::new();
         let response = client
             .post("https://api.lost-umbrella.com/post/create")
@@ -177,15 +180,14 @@ pub async fn push(post: NewPost, user: User) -> Result<Option<String>, IOErrors>
         println!("Send & Get");
 
         if response.status().is_success() {
-            println!("Seccess post");
-            Ok(Some(
-                response
-                    .text()
-                    .await
-                    .map_err(|e| IOErrors::PostPush(e.to_string()))?,
-            ))
+            println!("Success post");
+            let server_response: ServerResponse = response
+                .json::<ServerResponse>()
+                .await
+                .map_err(|e| IOErrors::PostPush(e.to_string()))?;
+            Ok(Some(server_response.inserte_id.oid))
         } else {
-            println!("Get Nothing");
+            println!("Post Nothing: Status: {}", response.status());
             Ok(None)
         }
     } else {
@@ -213,11 +215,18 @@ pub async fn push(post: NewPost, user: User) -> Result<Option<String>, IOErrors>
                 response
                     .text()
                     .await
+                    .map(|_| post.get_id().to_owned())
                     .map_err(|e| IOErrors::PostPush(e.to_string()))?,
             ))
         } else {
-            println!("Get Nothing");
+            println!("Put Nothing: Status: {}", response.status());
             Ok(None)
         }
     }
+}
+
+#[derive(Debug, Deserialize)]
+struct ServerResponse {
+    #[serde(alias = "insertedId")]
+    pub inserte_id: Id,
 }

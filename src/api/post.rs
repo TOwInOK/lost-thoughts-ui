@@ -51,10 +51,6 @@ impl Post {
             comments,
         }
     }
-
-    pub fn tags(&self) -> String {
-        self.tags.join(",")
-    }
 }
 #[allow(dead_code)]
 //Get & Set
