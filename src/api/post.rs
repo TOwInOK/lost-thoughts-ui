@@ -155,7 +155,7 @@ pub struct NewPost {
     pub footer: String,
     pub tags: Vec<String>,
 }
-
+#[allow(clippy::too_many_arguments)]
 impl NewPost {
     pub fn new(
         id: Option<Id>,

@@ -133,7 +133,7 @@ impl Application for LostThoughts {
                             self.current_window = window;
                         }
                         None => {
-                            self.title = format!("Create post");
+                            self.title = "Create post".to_string();
                             self.local_post.clear();
 
                             //Back & ReBack buttons state

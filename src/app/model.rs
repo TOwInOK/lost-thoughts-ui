@@ -44,16 +44,16 @@ pub struct LocalPost {
 }
 
 impl LocalPost {
-    fn convert_tags(tags: &String) -> Vec<String> {
+    fn convert_tags(tags: &str) -> Vec<String> {
         tags.split(',').map(|s| s.trim().to_string()).collect()
     }
 
-    fn convert_author(author: &String) -> Vec<String> {
+    fn convert_author(author: &str) -> Vec<String> {
         author.split(',').map(|s| s.trim().to_string()).collect()
     }
 
-    fn convert_id(id: &String) -> Option<Id> {
-        Some(Id::new(id.clone()))
+    fn convert_id(id: &str) -> Option<Id> {
+        Some(Id::new(id.to_owned()))
     }
 
     pub fn to_new_post(self) -> NewPost {
