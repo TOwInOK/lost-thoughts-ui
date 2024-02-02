@@ -40,7 +40,7 @@ pub async fn log_in(user: User) -> Result<Option<User>, IOErrors> {
     }
 }
 
-pub async fn sign_up(user: User) -> Result<Option<User>, IOErrors> {
+pub async fn sign_up(user: User) -> Result<(), IOErrors> {
     let client = Client::new();
     let response = client
         .post("https://api.lost-umbrella.com/user/create".to_string())
@@ -54,15 +54,15 @@ pub async fn sign_up(user: User) -> Result<Option<User>, IOErrors> {
         .map_err(|e| IOErrors::SingUp(e.to_string()))?;
     println!("Send & Get");
     if response.status().is_success() {
-        let json: User = response
-            .json()
+        let text = response
+            .text()
             .await
-            .map_err(|e| IOErrors::PostAdd(e.to_string()))?;
+            .map_err(|e| IOErrors::SingUp(e.to_string()))?;
         println!("Get Json");
-        Ok(Some(json))
+        Ok(())
     } else {
         println!("Get Nothing");
-        Ok(None)
+        Err(IOErrors::SingUp("".to_owned()))
     }
 }
 

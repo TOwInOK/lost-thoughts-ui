@@ -223,13 +223,14 @@ impl Application for LostThoughts {
 
             //Registered
             Message::Registered(result) => match result {
-                Ok(e) => match e {
-                    Some(_) => {
-                        Command::perform(async {}, |_| Message::SwitchWindow(WindowState::Login))
-                    }
-                    None => Command::none(),
-                },
-                Err(_) => Command::none(),
+                Ok(_) => {
+                    println!("Registered is ok");
+                    Command::perform(async {}, |_| Message::SwitchWindow(WindowState::Login))
+                }
+                Err(e) => {
+                    println!("Error: {:#?}", e);
+                    Command::none()
+                }
             },
             //Registered
 

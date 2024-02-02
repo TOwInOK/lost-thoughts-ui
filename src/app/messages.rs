@@ -38,7 +38,7 @@ pub enum Message {
     ///Perform Check signed from Signed message
     Signed(Result<Option<User>, IOErrors>),
     ///Perform Check register from Register message
-    Registered(Result<Option<User>, IOErrors>),
+    Registered(Result<(), IOErrors>),
     ///Get User from server
     SignIn,
     ///Register User on server
