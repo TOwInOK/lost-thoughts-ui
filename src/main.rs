@@ -2,6 +2,7 @@ use app::model::LostThoughts;
 use iced::{Application, Font, Settings};
 pub mod api;
 pub mod app;
+mod test;
 
 fn main() -> iced::Result {
     LostThoughts::run(Settings {
