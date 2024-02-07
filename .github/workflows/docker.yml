@@ -4,6 +4,9 @@ on:
   push:
     branches: [main]
 
+env:
+  RUSTFLAGS: "-Dwarnings"
+
 jobs:
   tests:
     runs-on: ubuntu-latest
@@ -71,9 +74,8 @@ jobs:
 
       - name: Build and Release
         uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/')
         with:
-          tag: latest
-          name: Monotype-ui
           files: ./target/release/lost-thoughts-ui
           body: App for Monotipe server
-          token: ${{ secrets.GITHUB_TOKEN }}
+          prerelease: true
