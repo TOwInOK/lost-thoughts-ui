@@ -5,7 +5,7 @@ use crate::api::{errors::IOErrors, role::Role, user::User};
 
 #[tokio::test]
 //Test Delete function of API
-async fn test_delete() {
+async fn delete() {
     // Запуск фиктивного сервера
     let mut lost_thought = mockito::Server::new();
     let id = 12332;
@@ -105,5 +105,60 @@ pub async fn log_in() {
         Ok(None)
     };
     //As we use json like User we neet to use .is_ok()
+    assert!(result.is_ok());
+}
+
+#[tokio::test]
+pub async fn sing_up() {
+    //mock user
+    let user = User::new(
+        "example_user".to_owned(),
+        "test123".to_owned(),
+        "email@email.xxx".to_owned(),
+        Some(Role::Default),
+    );
+    // Запуск фиктивного сервера
+    let mut lost_thought = mockito::Server::new();
+    lost_thought
+        .mock("DELETE", "/endpoint")
+        //match reqwest with mock data
+        .match_body(
+            r#"{
+            "name": "example_user",
+            "password": "test123"
+            "email":  "email@email.xxx"
+            }"#,
+        )
+        .with_body("DONE")
+        .create();
+    let uri = format!("{}/endpoint", lost_thought.url());
+
+    let client = Client::new();
+    let response = client
+        .get(format!("{}", uri))
+        .json(&json!({
+            "name": user.get_login(),
+            "password": user.get_password(),
+            "email": user.get_email()
+        }))
+        .send()
+        .await
+        .map_err(|e| IOErrors::SingIn(e.to_string()))
+        .unwrap();
+    println!("Send & Get");
+    let result: Result<(), IOErrors> = if response.status().is_success() {
+        println!("Get Json");
+        let _text = response
+            .text()
+            .await
+            .map_err(|e| IOErrors::SingUp(e.to_string()))
+            .unwrap();
+
+        Ok(())
+    } else {
+        println!("Get Nothing");
+        Err(IOErrors::SingUp("".to_owned()))
+    };
+    //We just get void or exeption in err
     assert!(result.is_ok());
 }
