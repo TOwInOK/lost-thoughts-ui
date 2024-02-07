@@ -51,24 +51,10 @@ jobs:
       - name: Build
         run: cargo build --release
 
-      - name: Create Release
-        id: create_release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build and Release
+        uses: softprops/action-gh-release@v1
         with:
-          tag_name: latest
-          release_name: Monotype
-          draft: false
-          prerelease: true
-
-      - name: Upload Release Asset
-        id: upload-release-asset
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./target/release/lost-thoughts-ui
-          asset_name: lost-thoughts-ui
-          asset_content_type: application/octet-stream
+          name: Monotype-ui
+          files: ./target/release/lost-thoughts-ui
+          body: App for Monotipe server
+          token: ${{ secrets.GITHUB_TOKEN }}
