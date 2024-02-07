@@ -2,10 +2,11 @@ use reqwest::Client;
 use serde_json::json;
 
 use crate::api::{errors::IOErrors, role::Role, user::User};
+//Mockito does't support json from reqwest.
 
 #[tokio::test]
 //Test Delete function of API
-async fn test_delete() {
+async fn delete() {
     // Запуск фиктивного сервера
     let mut lost_thought = mockito::Server::new();
     let id = 12332;
@@ -50,30 +51,23 @@ async fn test_delete() {
 
 #[tokio::test]
 pub async fn log_in() {
-    //mock user
-    let user = User::new(
-        "example_user".to_owned(),
-        "test123".to_owned(),
-        "email@email.xxx".to_owned(),
-        Some(Role::Default),
-    );
     // Запуск фиктивного сервера
     let mut lost_thought = mockito::Server::new();
     lost_thought
-        .mock("DELETE", "/endpoint")
+        .mock("GET", "/endpoint")
         //match reqwest with mock data
         .match_body(
             r#"{
-            "name": "example_user",
-            "password": "test123"
+                "name": "example_user",
+                "password": "test123"
             }"#,
         )
         .with_body(
             r#"{
-            "name": "example_user",
-            "password": "test123",
-            "email": "email@email.xxx",
-            "role": "Default"
+                "name": "example_user",
+                "password": "test123",
+                "email": "email@email.xxx",
+                "role": "Default"
             }"#,
         )
         .create();
@@ -82,10 +76,12 @@ pub async fn log_in() {
     let client = Client::new();
     let response = client
         .get(format!("{}", uri))
-        .json(&json!({
-            "name": user.get_login(),
-            "password": user.get_password(),
-        }))
+        .body(
+            r#"{
+                "name": "example_user",
+                "password": "test123"
+            }"#,
+        )
         .send()
         .await
         .map_err(|e| IOErrors::SingIn(e.to_string()))
@@ -101,8 +97,58 @@ pub async fn log_in() {
 
         Ok(Some(json))
     } else {
+        println!("Get Nothing: {}", response.status());
+        Err(IOErrors::SingUp("".to_owned()))
+    };
+    //As we use json like User we neet to use .is_ok()
+    assert!(result.is_ok());
+}
+
+#[tokio::test]
+pub async fn sing_up() {
+    // Запуск фиктивного сервера
+    let mut lost_thought = mockito::Server::new();
+    lost_thought
+        .mock("POST", "/endpoint")
+        //match reqwest with mock data
+        .match_body(
+            r#"{
+                "name": "example_user",
+                "password": "test123",
+                "email": "email@email.xxx"
+            }"#,
+        )
+        .create();
+    let uri = format!("{}/endpoint", lost_thought.url());
+
+    let client = Client::new();
+    let response = client
+        .post(format!("{}", uri))
+        .body(
+            r#"{
+                "name": "example_user",
+                "password": "test123",
+                "email": "email@email.xxx"
+            }"#,
+        )
+        .send()
+        .await
+        .map_err(|e| IOErrors::SingIn(e.to_string()))
+        .unwrap();
+    println!("Send & Get");
+    //cause we get simply text we use string instad any stru
+    let result: Result<String, IOErrors> = if response.status().is_success() {
+        println!("Get Json");
+        let text = response
+            .text()
+            .await
+            .map_err(|e| IOErrors::SingIn(e.to_string()))
+            .unwrap();
+
+        Ok(text)
+    } else {
         println!("Get Nothing");
-        Ok(None)
+        Err(IOErrors::SingUp("".to_owned()))
     };
     //As we use json like User we neet to use .is_ok()
     assert!(result.is_ok());
