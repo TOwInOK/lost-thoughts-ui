@@ -54,7 +54,7 @@ pub async fn sign_up(user: User) -> Result<(), IOErrors> {
         .map_err(|e| IOErrors::SingUp(e.to_string()))?;
     println!("Send & Get");
     if response.status().is_success() {
-        let text = response
+        let _text = response
             .text()
             .await
             .map_err(|e| IOErrors::SingUp(e.to_string()))?;
