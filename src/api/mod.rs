@@ -87,6 +87,9 @@ pub async fn get_all_posts() -> Result<Option<Vec<Post>>, IOErrors> {
     Ok(if json.is_empty() { None } else { Some(json) })
 }
 
+///Get 10 post if 0 or 1
+///
+///1 number = 10 posts(`Some(Vec<Post>)`) in 1 reqwest
 pub async fn get_page(page: u32) -> Result<Option<Vec<Post>>, IOErrors> {
     println!("Start medot GetPage");
     let client = Client::new();
