@@ -1,7 +1,7 @@
 use reqwest::Client;
 use serde_json::json;
 
-use crate::api::{errors::IOErrors, role::Role, user::User};
+use crate::api::{errors::IOErrors, post::Post, role::Role, user::User};
 //Mockito does't support json from reqwest.
 
 #[tokio::test]
@@ -146,6 +146,120 @@ pub async fn sing_up() {
             .unwrap();
 
         Ok(text)
+    } else {
+        println!("Get Nothing");
+        Err(IOErrors::SingUp("".to_owned()))
+    };
+    //As we use json like User we neet to use .is_ok()
+    assert!(result.is_ok());
+}
+
+#[tokio::test]
+pub async fn get_all_posts() {
+    // Запуск фиктивного сервера
+    let mut lost_thought = mockito::Server::new();
+    lost_thought
+        .mock("GET", "/endpoint")
+        //match reqwest with mock data
+        .with_body(
+            r#"[{
+            "_id": {
+                "$oid": "65c4656f81062592f2274a66"
+            },
+            "author": [
+                "example_user",
+                "TOwInOK"
+            ],
+            "date": 1707369839327,
+            "underlabel": "test",
+            "label": "TEST",
+            "text": "TEWRERWQFEDSADF",
+            "footer": "FOOTER?",
+            "tags": [
+                "1",
+                "2"
+            ],
+            "comments": []
+        }]"#,
+        )
+        .create();
+    let uri = format!("{}/endpoint", lost_thought.url());
+
+    let client = Client::new();
+    let response = client
+        .get(format!("{}", uri))
+        .send()
+        .await
+        .map_err(|e| IOErrors::SingIn(e.to_string()))
+        .unwrap();
+    println!("Send & Get");
+    let result: Result<Option<Vec<Post>>, IOErrors> = if response.status().is_success() {
+        println!("Get Json");
+        let json: Vec<Post> = response
+            .json()
+            .await
+            .map_err(|e| IOErrors::SingIn(e.to_string()))
+            .unwrap();
+
+        Ok(if json.is_empty() { None } else { Some(json) })
+    } else {
+        println!("Get Nothing");
+        Err(IOErrors::SingUp("".to_owned()))
+    };
+    //As we use json like User we neet to use .is_ok()
+    assert!(result.is_ok());
+}
+
+#[tokio::test]
+pub async fn get_post_by_id() {
+    // Запуск фиктивного сервера
+    let mut lost_thought = mockito::Server::new();
+    lost_thought
+        .mock("GET", "/endpoint")
+        //match reqwest with mock data
+        .with_body(
+            r#"
+            {
+                "_id": {
+                    "$oid": "65c4656f81062592f2274a66"
+                },
+                "author": [
+                    "example_user",
+                    "TOwInOK"
+                ],
+                "date": 1707369839327,
+                "underlabel": "test",
+                "label": "TEST",
+                "text": "TEWRERWQFEDSADF",
+                "footer": "FOOTER?",
+                "tags": [
+                    "1",
+                    "2"
+                ],
+                "comments": []
+            }
+            "#,
+        )
+        .create();
+    let uri = format!("{}/endpoint", lost_thought.url());
+
+    let client = Client::new();
+    let response = client
+        .get(format!("{}", uri))
+        .send()
+        .await
+        .map_err(|e| IOErrors::SingIn(e.to_string()))
+        .unwrap();
+    println!("Send & Get");
+    let result: Result<Option<Post>, IOErrors> = if response.status().is_success() {
+        println!("Get Json");
+        let json: Post = response
+            .json()
+            .await
+            .map_err(|e| IOErrors::SingIn(e.to_string()))
+            .unwrap();
+
+        Ok(Some(json))
     } else {
         println!("Get Nothing");
         Err(IOErrors::SingUp("".to_owned()))
